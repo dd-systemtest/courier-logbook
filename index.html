@@ -6,6 +6,11 @@
     <title>VM Courier Logbook Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    
     <style>
         :root {
             --primary: #2c3e50;
@@ -707,6 +712,21 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Initialize Firebase with your configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyA7RaIM0S-KpEsxeVPgIGIgqmyefL2D20Q",
+          authDomain: "logbook-vm.firebaseapp.com",
+          projectId: "logbook-vm",
+          storageBucket: "logbook-vm.firebasestorage.app",
+          messagingSenderId: "1050989024246",
+          appId: "1:1050989024246:web:8829a5f7aa2abc8b282dd7",
+          measurementId: "G-CST9V0H1G7"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
         // Application State
         let currentUser = null;
         let currentEntryId = null;
@@ -731,11 +751,67 @@
         let activityLogs = [];
         let entryRemarks = {};
         
+        // Firebase Functions
+        function saveToFirebase() {
+          const data = {
+            users: users,
+            logbookEntries: logbookEntries,
+            deletedEntries: deletedEntries,
+            editRequests: editRequests,
+            activityLogs: activityLogs,
+            entryRemarks: entryRemarks
+          };
+          
+          database.ref('vmCourierData').set(data)
+            .then(() => {
+              console.log('Data saved successfully to Firebase');
+            })
+            .catch((error) => {
+              console.error('Error saving data to Firebase: ', error);
+            });
+        }
+
+        function loadFromFirebase(callback) {
+          database.ref('vmCourierData').once('value')
+            .then((snapshot) => {
+              const data = snapshot.val();
+              if (data) {
+                users = data.users || users;
+                logbookEntries = data.logbookEntries || [];
+                deletedEntries = data.deletedEntries || [];
+                editRequests = data.editRequests || [];
+                activityLogs = data.activityLogs || [];
+                entryRemarks = data.entryRemarks || {};
+              }
+              if (callback) callback();
+            })
+            .catch((error) => {
+              console.error("Error loading data from Firebase: ", error);
+              if (callback) callback();
+            });
+        }
+        
+        function setupRealtimeUpdates() {
+          database.ref('vmCourierData').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+              users = data.users || users;
+              logbookEntries = data.logbookEntries || [];
+              deletedEntries = data.deletedEntries || [];
+              editRequests = data.editRequests || [];
+              activityLogs = data.activityLogs || [];
+              entryRemarks = data.entryRemarks || {};
+            }
+            updateUI();
+          });
+        }
+        
         // Initialize Application
         document.addEventListener('DOMContentLoaded', function() {
-            loadFromStorage();
-            checkLoginStatus();
-            setupEventListeners();
+            loadFromFirebase(() => {
+                checkLoginStatus();
+                setupEventListeners();
+            });
         });
         
         // Event Listeners
@@ -746,19 +822,21 @@
         
         // Login Management
         function checkLoginStatus() {
-            const savedUser = localStorage.getItem('vmCourierUser');
-            const rememberMe = localStorage.getItem('vmCourierRemember');
-            
-            if (savedUser && rememberMe === 'true') {
-                const userData = JSON.parse(savedUser);
-                const user = users.find(u => u.id === userData.id);
-                if (user) {
-                    loginUser(user);
-                    return;
+            loadFromFirebase(() => {
+                const savedUser = localStorage.getItem('vmCourierUser');
+                const rememberMe = localStorage.getItem('vmCourierRemember');
+                
+                if (savedUser && rememberMe === 'true') {
+                    const userData = JSON.parse(savedUser);
+                    const user = users.find(u => u.id === userData.id);
+                    if (user) {
+                        loginUser(user);
+                        return;
+                    }
                 }
-            }
-            
-            showLoginPage();
+                
+                showLoginPage();
+            });
         }
         
         function handleLogin(e) {
@@ -796,6 +874,9 @@
                 document.getElementById('activityLogSection').style.display = 'block';
             }
             
+            // Setup real-time updates
+            setupRealtimeUpdates();
+            
             updateUI();
         }
         
@@ -804,6 +885,10 @@
             currentUser = null;
             localStorage.removeItem('vmCourierUser');
             localStorage.removeItem('vmCourierRemember');
+            
+            // Remove Firebase listener
+            database.ref('vmCourierData').off();
+            
             showLoginPage();
         }
         
@@ -1070,7 +1155,7 @@
                 logActivity('Add Entry', `New entry created by ${currentUser.name}`);
             }
             
-            saveToStorage();
+            saveToFirebase();
             updateUI();
             bootstrap.Modal.getInstance(document.getElementById('entryModal')).hide();
         }
@@ -1106,7 +1191,7 @@
                 const entry = logbookEntries.splice(entryIndex, 1)[0];
                 deletedEntries.unshift(entry);
                 logActivity('Delete Entry', `Entry #${entryId} deleted by ${currentUser.name}`);
-                saveToStorage();
+                saveToFirebase();
                 updateUI();
             }
         }
@@ -1118,7 +1203,7 @@
                 entry.committedBy = currentUser.id;
                 entry.committedAt = new Date().toISOString();
                 logActivity('Commit Entry', `Entry #${entryId} committed by ${currentUser.name}`);
-                saveToStorage();
+                saveToFirebase();
                 updateUI();
             }
         }
@@ -1140,7 +1225,7 @@
                 });
                 
                 logActivity('Uncommit Entry', `Entry #${entryId} uncommitted by ${currentUser.name}`);
-                saveToStorage();
+                saveToFirebase();
                 updateUI();
             }
         }
@@ -1151,7 +1236,7 @@
                 const entry = deletedEntries.splice(entryIndex, 1)[0];
                 logbookEntries.unshift(entry);
                 logActivity('Restore Entry', `Entry #${entryId} restored by ${currentUser.name}`);
-                saveToStorage();
+                saveToFirebase();
                 updateUI();
             }
         }
@@ -1164,7 +1249,7 @@
                 deletedEntries.splice(entryIndex, 1);
                 delete entryRemarks[entryId];
                 logActivity('Permanent Delete', `Entry #${entryId} permanently deleted by ${currentUser.name}`);
-                saveToStorage();
+                saveToFirebase();
                 updateUI();
             }
         }
@@ -1219,7 +1304,7 @@
             });
             
             logActivity('Add Remark', `Remark added to entry #${currentRemarksEntryId} by ${currentUser.name}`);
-            saveToStorage();
+            saveToFirebase();
             viewRemarks(currentRemarksEntryId);
             renderLogbookEntries();
         }
@@ -1254,7 +1339,7 @@
             
             editRequests.unshift(request);
             logActivity('Edit Request', `Edit request submitted for entry #${currentEntryId} by ${currentUser.name}`);
-            saveToStorage();
+            saveToFirebase();
             updateUI();
             bootstrap.Modal.getInstance(document.getElementById('editRequestModal')).hide();
             
@@ -1350,7 +1435,7 @@
             if (user && user.role !== 'admin') {
                 user.canCommit = !user.canCommit;
                 logActivity('Toggle Permission', `Commit permission ${user.canCommit ? 'granted to' : 'revoked from'} ${user.name}`);
-                saveToStorage();
+                saveToFirebase();
             }
         }
         
@@ -1443,7 +1528,7 @@
                 userId: currentUser.id,
                 timestamp: new Date().toISOString()
             });
-            saveToStorage();
+            saveToFirebase();
         }
         
         function updateUI() {
@@ -1452,31 +1537,6 @@
                 if (document.getElementById('usersPage').classList.contains('active')) {
                     loadUsersPage();
                 }
-            }
-        }
-        
-        // Storage Management
-        function saveToStorage() {
-            localStorage.setItem('vmCourierData', JSON.stringify({
-                users: users,
-                logbookEntries: logbookEntries,
-                deletedEntries: deletedEntries,
-                editRequests: editRequests,
-                activityLogs: activityLogs,
-                entryRemarks: entryRemarks
-            }));
-        }
-        
-        function loadFromStorage() {
-            const data = localStorage.getItem('vmCourierData');
-            if (data) {
-                const parsed = JSON.parse(data);
-                users = parsed.users || users;
-                logbookEntries = parsed.logbookEntries || [];
-                deletedEntries = parsed.deletedEntries || [];
-                editRequests = parsed.editRequests || [];
-                activityLogs = parsed.activityLogs || [];
-                entryRemarks = parsed.entryRemarks || {};
             }
         }
     </script>
