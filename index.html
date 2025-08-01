@@ -8,19 +8,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         :root {
-            --primary: #0056b3;
-            --secondary: #6c757d;
-            --success: #28a745;
-            --danger: #dc3545;
-            --warning: #ffc107;
-            --light: #f8f9fa;
-            --dark: #343a40;
+            --primary: #2c3e50;
+            --secondary: #95a5a6;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ffffff;
+            --dark: #2c3e50;
+            --soft-gray: #f8f9fa;
+            --border-light: #e9ecef;
         }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
+            color: #2c3e50;
         }
         
         .login-container {
@@ -28,164 +31,209 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
         
         .login-card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            padding: 3rem;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
+            border: 1px solid var(--border-light);
         }
         
         .login-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
         
         .login-header h2 {
             color: var(--primary);
-            font-weight: 700;
+            font-weight: 600;
             margin-bottom: 0.5rem;
+            font-size: 1.8rem;
         }
         
         .login-header p {
             color: var(--secondary);
             margin: 0;
+            font-weight: 400;
         }
         
         .form-control {
-            border-radius: 10px;
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 14px 18px;
+            border: 2px solid var(--border-light);
             transition: all 0.3s ease;
+            background: #ffffff;
+            font-size: 0.95rem;
         }
         
         .form-control:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 0.2rem rgba(0,86,179,0.25);
+            box-shadow: 0 0 0 0.2rem rgba(44,62,80,0.15);
+            background: #ffffff;
         }
         
         .btn-login {
             background: var(--primary);
             border: none;
-            border-radius: 10px;
-            padding: 12px 30px;
-            font-weight: 600;
+            border-radius: 12px;
+            padding: 14px 30px;
+            font-weight: 500;
             transition: all 0.3s ease;
+            font-size: 1rem;
         }
         
         .btn-login:hover {
-            background: #004494;
-            transform: translateY(-2px);
+            background: #34495e;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(44,62,80,0.15);
         }
         
         .main-container {
-            background: var(--light);
+            background: #ffffff;
             min-height: 100vh;
         }
         
         .navbar {
             background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 1rem 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+            padding: 1.2rem 0;
+            border-bottom: 1px solid var(--border-light);
         }
         
         .navbar-brand {
-            font-weight: 700;
+            font-weight: 600;
             color: var(--primary);
-            font-size: 1.5rem;
+            font-size: 1.6rem;
         }
         
         .nav-link {
             font-weight: 500;
-            margin: 0 10px;
-            border-radius: 8px;
+            margin: 0 8px;
+            border-radius: 10px;
             transition: all 0.3s ease;
+            color: var(--primary) !important;
+            padding: 8px 16px;
         }
         
         .nav-link:hover, .nav-link.active {
             background: var(--primary);
             color: white !important;
+            transform: translateY(-1px);
         }
         
         .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
             margin-bottom: 2rem;
             overflow: hidden;
+            background: white;
         }
         
         .card-header {
-            background: var(--primary);
-            color: white;
+            background: white;
+            color: var(--primary);
             font-weight: 600;
-            padding: 1rem 1.5rem;
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--soft-gray);
+            font-size: 1.1rem;
         }
         
         .card-body {
-            padding: 1.5rem;
+            padding: 2rem;
+            background: white;
         }
         
         .btn {
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 500;
             transition: all 0.3s ease;
+            padding: 8px 16px;
+            border: none;
         }
         
         .btn:hover {
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #34495e;
         }
         
         .badge {
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 500;
+            padding: 6px 12px;
         }
         
         .table {
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
+            border: 1px solid var(--border-light);
         }
         
         .table thead th {
-            background: var(--light);
+            background: var(--soft-gray);
             border: none;
             font-weight: 600;
-            color: var(--dark);
+            color: var(--primary);
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .table tbody tr {
+            border-bottom: 1px solid #f8f9fa;
         }
         
         .table tbody tr:hover {
-            background: rgba(0,86,179,0.05);
+            background: rgba(44,62,80,0.02);
+        }
+        
+        .table tbody td {
+            padding: 1rem;
+            vertical-align: middle;
         }
         
         .entry-photo {
             width: 60px;
             height: 60px;
             object-fit: cover;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
+            border: 2px solid var(--border-light);
         }
         
         .committed-entry {
-            background: rgba(40,167,69,0.1);
+            background: rgba(39,174,96,0.03);
+            border-left: 4px solid var(--success);
         }
         
         .edit-request-badge {
             background: var(--warning);
-            color: var(--dark);
+            color: white;
             font-size: 0.75rem;
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: 12px;
         }
         
         .activity-item {
             border-left: 4px solid var(--primary);
             background: white;
-            padding: 1rem;
+            padding: 1.2rem;
             margin-bottom: 1rem;
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 12px 12px 0;
+            border: 1px solid var(--border-light);
         }
         
         .user-avatar {
@@ -203,41 +251,49 @@
         .modal-header {
             background: var(--primary);
             color: white;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .modal-content {
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
         }
         
         .photo-preview {
             max-width: 100%;
             max-height: 200px;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-top: 10px;
+            border: 2px solid var(--border-light);
         }
         
         .remarks-list {
             max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 10px;
-            background: #f8f9fa;
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 12px;
+            background: var(--soft-gray);
         }
         
         .remark-item {
             background: white;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
             border-left: 3px solid var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
         
         .remark-author {
             font-weight: 600;
             color: var(--primary);
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
         
         .remark-time {
             color: var(--secondary);
-            font-size: 0.75rem;
+            font-size: 0.8rem;
         }
         
         .page-section {
@@ -249,15 +305,16 @@
         }
         
         .stats-card {
-            background: linear-gradient(135deg, var(--primary), #004494);
+            background: linear-gradient(135deg, var(--primary), #34495e);
             color: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 25px rgba(44,62,80,0.15);
         }
         
         .stats-number {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 700;
         }
         
@@ -268,12 +325,35 @@
             background: var(--danger);
             color: white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             font-size: 0.75rem;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: 600;
+        }
+        
+        .container {
+            max-width: 1200px;
+        }
+        
+        .alert {
+            border-radius: 12px;
+            border: none;
+            padding: 1rem 1.5rem;
+        }
+        
+        .form-select {
+            border-radius: 12px;
+            padding: 14px 18px;
+            border: 2px solid var(--border-light);
+            background: white;
+        }
+        
+        .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(44,62,80,0.15);
         }
     </style>
 </head>
@@ -419,6 +499,8 @@
                                         <th>Date</th>
                                         <th>PIC</th>
                                         <th>Destination</th>
+                                        <th>Cashbill #</th>
+                                        <th>Consignment #</th>
                                         <th>Photo</th>
                                         <th>Remarks</th>
                                         <th>Status</th>
@@ -496,13 +578,27 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="entryDestination" class="form-label">Destination</label>
+                            <label for="entryDestination" class="form-label">Destination Trade In Partner</label>
                             <select class="form-select" id="entryDestination" required>
                                 <option value="">Select Destination</option>
                                 <option value="ENB">ENB</option>
                                 <option value="Remobie">Remobie</option>
                                 <option value="Miifix">Miifix</option>
                             </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="entryCashbill" class="form-label">Cashbill Number *</label>
+                                    <input type="text" class="form-control" id="entryCashbill" required placeholder="Enter cashbill number">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="entryConsignment" class="form-label">Consignment Number *</label>
+                                    <input type="text" class="form-control" id="entryConsignment" required placeholder="Enter consignment number">
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="entryPhoto" class="form-label">Courier Photo Proof</label>
@@ -591,7 +687,7 @@
         
         // Data Storage
         let users = [
-            { id: '7434', name: 'Admin User', role: 'admin', password: 'admin123', canCommit: true },
+            { id: '7434', name: 'Danial Danish', role: 'admin', password: 'Dd123', canCommit: true },
             { id: '1001', name: 'John Doe', role: 'crew', password: 'crew123', canCommit: true },
             { id: '1002', name: 'Jane Smith', role: 'crew', password: 'crew123', canCommit: false },
             { id: '1003', name: 'Mike Johnson', role: 'crew', password: 'crew123', canCommit: true }
@@ -759,6 +855,8 @@
                     <td>${entry.date}</td>
                     <td>${entry.pic}${editRequestBadge}</td>
                     <td><span class="badge bg-primary">${entry.destination}</span></td>
+                    <td><span class="text-muted">${entry.cashbill || 'N/A'}</span></td>
+                    <td><span class="text-muted">${entry.consignment || 'N/A'}</span></td>
                     <td>
                         ${entry.photo ? 
                             `<img src="${entry.photo}" class="entry-photo" onclick="viewPhoto('${entry.photo}')">` : 
@@ -805,8 +903,8 @@
                         <i class="fas fa-edit"></i>
                     </button>`;
                 } else if (entry.createdBy === currentUser.id) {
-                    buttons += `<button class="btn btn-sm btn-warning me-1" onclick="requestEdit(${entry.id})">
-                        <i class="fas fa-edit"></i> Request
+                    buttons += `<button class="btn btn-sm btn-warning me-1" onclick="showCommittedEditAlert()">
+                        <i class="fas fa-edit"></i>
                     </button>`;
                 }
             } else {
@@ -849,16 +947,20 @@
             document.getElementById('entryForm').reset();
             document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('entryPIC').value = currentUser.name;
+            document.getElementById('entryCashbill').value = '';
+            document.getElementById('entryConsignment').value = '';
             document.getElementById('photoPreview').innerHTML = '';
         }
 
         function saveEntry() {
             const date = document.getElementById('entryDate').value;
             const destination = document.getElementById('entryDestination').value;
+            const cashbill = document.getElementById('entryCashbill').value;
+            const consignment = document.getElementById('entryConsignment').value;
             const photoFile = document.getElementById('entryPhoto').files[0];
             const remarks = document.getElementById('entryRemarks').value;
             
-            if (!date || !destination) {
+            if (!date || !destination || !cashbill || !consignment) {
                 alert('Please fill in all required fields');
                 return;
             }
@@ -867,21 +969,23 @@
             if (photoFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    saveEntryWithPhoto(date, destination, remarks, e.target.result);
+                    saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, e.target.result);
                 };
                 reader.readAsDataURL(photoFile);
             } else {
-                saveEntryWithPhoto(date, destination, remarks, null);
+                saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, null);
             }
         }
 
-        function saveEntryWithPhoto(date, destination, remarks, photoData) {
+        function saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, photoData) {
             if (currentEntryId) {
                 // Edit existing entry
                 const entry = logbookEntries.find(e => e.id === currentEntryId);
                 if (entry) {
                     entry.date = date;
                     entry.destination = destination;
+                    entry.cashbill = cashbill;
+                    entry.consignment = consignment;
                     if (photoData) entry.photo = photoData;
                     entry.lastModified = new Date().toISOString();
                     
@@ -903,6 +1007,8 @@
                     date: date,
                     pic: currentUser.name,
                     destination: destination,
+                    cashbill: cashbill,
+                    consignment: consignment,
                     photo: photoData,
                     committed: false,
                     createdBy: currentUser.id,
@@ -937,6 +1043,8 @@
             document.getElementById('entryDate').value = entry.date;
             document.getElementById('entryPIC').value = entry.pic;
             document.getElementById('entryDestination').value = entry.destination;
+            document.getElementById('entryCashbill').value = entry.cashbill || '';
+            document.getElementById('entryConsignment').value = entry.consignment || '';
             document.getElementById('entryRemarks').value = '';
             
             if (entry.photo) {
@@ -1075,6 +1183,10 @@
         }
 
         // Edit Request Management
+        function showCommittedEditAlert() {
+            alert('This entry is committed and cannot be edited. Please contact Admin (Danial Danish - ID: 7434) for assistance.');
+        }
+        
         function requestEdit(entryId) {
             currentEntryId = entryId;
             document.getElementById('editRequestReason').value = '';
@@ -1104,7 +1216,7 @@
             updateUI();
             bootstrap.Modal.getInstance(document.getElementById('editRequestModal')).hide();
             
-            alert('Edit request submitted to admin (ID: 7434)');
+            alert('Edit request submitted. Please contact Admin (Danial Danish - ID: 7434) for approval.');
         }
 
         function updateEditRequestBadge() {
