@@ -586,6 +586,16 @@
                                 <option value="Miifix">Miifix</option>
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label for="entryCourier" class="form-label">Courier Type</label>
+                            <select class="form-select" id="entryCourier" required>
+                                <option value="">Select Courier</option>
+                                <option value="eDHL">eDHL</option>
+                                <option value="Poslaju">Poslaju</option>
+                                <option value="GDex">GDex</option>
+                                <option value="Others">Others</option>
+                            </select>
+                        </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -688,9 +698,13 @@
         // Data Storage
         let users = [
             { id: '7434', name: 'Danial Danish', role: 'admin', password: 'Dd123', canCommit: true },
-            { id: '1001', name: 'John Doe', role: 'crew', password: 'crew123', canCommit: true },
-            { id: '1002', name: 'Jane Smith', role: 'crew', password: 'crew123', canCommit: false },
-            { id: '1003', name: 'Mike Johnson', role: 'crew', password: 'crew123', canCommit: true }
+            { id: '4545', name: 'Ain Ismail', role: 'TL', password: 'Ain123', canCommit: false },
+            { id: '5546', name: 'Cindamani Anam', role: 'RSE', password: 'Ann123', canCommit: false },
+            { id: '7701', name: 'Syarifuddin Mat Razali', role: 'RSA', password: 'Din123', canCommit: false },
+            { id: '7407', name: 'Nur Sabrina', role: 'RSA', password: 'Sab123', canCommit: false },
+            { id: '7940', name: 'Eisya Nasir', role: 'RSA', password: 'Eisya123', canCommit: false },
+            { id: '6435', name: 'Lee Shean Yi', role: 'RSA', password: 'Lee123', canCommit: false },
+            { id: '0690', name: 'Kavindhran', role: 'AH', password: 'Kavin123', canCommit: false }
         ];
         
         let logbookEntries = [];
