@@ -6,11 +6,6 @@
     <title>VM Courier Logbook Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-    
     <style>
         :root {
             --primary: #2c3e50;
@@ -360,45 +355,6 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 0.2rem rgba(44,62,80,0.15);
         }
-        
-        .courier-badge {
-            font-size: 0.85rem;
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-weight: 500;
-        }
-        
-        .courier-edhl {
-            background-color: #FFCC00;
-            color: #333;
-        }
-        
-        .courier-poslaju {
-            background-color: #005BAC;
-            color: white;
-        }
-        
-        .courier-gdex {
-            background-color: #FF6600;
-            color: white;
-        }
-        
-        .courier-other {
-            background-color: #6c757d;
-            color: white;
-        }
-        
-        .debug-panel {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
     </style>
 </head>
 <body>
@@ -414,12 +370,10 @@
                 <div class="mb-3">
                     <label for="loginId" class="form-label">User ID</label>
                     <input type="text" class="form-control" id="loginId" required>
-                    <div class="form-text">Try: 7434 (Admin), 4545 (Staff), etc.</div>
                 </div>
                 <div class="mb-3">
                     <label for="loginPassword" class="form-label">Password</label>
                     <input type="password" class="form-control" id="loginPassword" required>
-                    <div class="form-text">Password format: Name + 123 (e.g., Dd123 for Danial)</div>
                 </div>
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="rememberMe">
@@ -432,11 +386,8 @@
                 </div>
             </form>
             <div id="loginError" class="alert alert-danger mt-3" style="display: none;"></div>
-            <div id="debugInfo" class="alert alert-info mt-3" style="display: none;"></div>
-            <div id="debugPanel" class="debug-panel" style="display: none;"></div>
         </div>
     </div>
-    
     <!-- Main Application -->
     <div id="mainApp" class="main-container" style="display: none;">
         <!-- Navigation -->
@@ -467,7 +418,6 @@
                 </div>
             </div>
         </nav>
-        
         <!-- Logbook Page -->
         <div id="logbookPage" class="page-section active">
             <div class="container mt-4">
@@ -518,7 +468,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <!-- Add Entry Button -->
                 <div class="row mb-3">
                     <div class="col">
@@ -530,7 +479,6 @@
                         </button>
                     </div>
                 </div>
-                
                 <!-- Logbook Entries -->
                 <div class="card">
                     <div class="card-header">
@@ -547,7 +495,6 @@
                                         <th>Date</th>
                                         <th>PIC</th>
                                         <th>Destination</th>
-                                        <th>Courier Type</th>
                                         <th>Cashbill*</th>
                                         <th>Consignment*</th>
                                         <th>Photo</th>
@@ -564,7 +511,6 @@
                 </div>
             </div>
         </div>
-        
         <!-- User Management Page -->
         <div id="usersPage" class="page-section">
             <div class="container mt-4">
@@ -601,7 +547,6 @@
             </div>
         </div>
     </div>
-    
     <!-- Entry Modal -->
     <div class="modal fade" id="entryModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -633,16 +578,6 @@
                                 <option value="ENB">ENB</option>
                                 <option value="Remobie">Remobie</option>
                                 <option value="Miifix">Miifix</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="entryCourierType" class="form-label">Courier Type</label>
-                            <select class="form-select" id="entryCourierType" required>
-                                <option value="">Select Courier</option>
-                                <option value="eDHL">eDHL</option>
-                                <option value="Poslaju">Poslaju</option>
-                                <option value="GDex">GDex</option>
-                                <option value="Other">Other</option>
                             </select>
                         </div>
                         <div class="row">
@@ -677,7 +612,6 @@
             </div>
         </div>
     </div>
-    
     <!-- Remarks Modal -->
     <div class="modal fade" id="remarksModal" tabindex="-1">
         <div class="modal-dialog">
@@ -700,7 +634,6 @@
             </div>
         </div>
     </div>
-    
     <!-- Edit Request Modal -->
     <div class="modal fade" id="editRequestModal" tabindex="-1">
         <div class="modal-dialog">
@@ -720,7 +653,6 @@
             </div>
         </div>
     </div>
-    
     <!-- Photo View Modal -->
     <div class="modal fade" id="photoModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -735,40 +667,16 @@
             </div>
         </div>
     </div>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Initialize Firebase with your configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyA7RaIM0S-KpEsxeVPgIGIgqmyefL2D20Q",
-          authDomain: "logbook-vm.firebaseapp.com",
-          projectId: "logbook-vm",
-          storageBucket: "logbook-vm.firebasestorage.app",
-          messagingSenderId: "1050989024246",
-          appId: "1:1050989024246:web:8829a5f7aa2abc8b282dd7",
-          measurementId: "G-CST9V0H1G7"
-        };
-        
-        // Initialize Firebase
-        let firebaseInitialized = false;
-        try {
-            firebase.initializeApp(firebaseConfig);
-            firebaseInitialized = true;
-            console.log("Firebase initialized successfully");
-        } catch (error) {
-            console.error("Firebase initialization failed:", error);
-        }
-        
-        const database = firebaseInitialized ? firebase.database() : null;
-        
         // Application State
         let currentUser = null;
         let currentEntryId = null;
         let currentRemarksEntryId = null;
         let showingDeleted = false;
         
-        // Local users for authentication (always available)
-        const localUsers = [
+        // Data Storage
+        let users = [
             { id: '7434', name: 'Danial Danish', role: 'admin', password: 'Dd123', canCommit: true },
             { id: '4545', name: 'Ain Ismail', role: 'TL', password: 'Ain123', canCommit: false },
             { id: '5546', name: 'Cindamani Anam', role: 'RSE', password: 'Ann123', canCommit: false },
@@ -779,100 +687,17 @@
             { id: '0690', name: 'Kavindhran', role: 'AH', password: 'Kavin123', canCommit: false }
         ];
         
-        // Data Storage
-        let users = [...localUsers];
         let logbookEntries = [];
         let deletedEntries = [];
         let editRequests = [];
         let activityLogs = [];
         let entryRemarks = {};
         
-        // Firebase Functions (with fallback)
-        function saveToFirebase() {
-            if (!firebaseInitialized || !database) {
-                console.log("Firebase not available, skipping save");
-                return;
-            }
-            
-            const data = {
-                users: users,
-                logbookEntries: logbookEntries,
-                deletedEntries: deletedEntries,
-                editRequests: editRequests,
-                activityLogs: activityLogs,
-                entryRemarks: entryRemarks
-            };
-            
-            database.ref('vmCourierData').set(data)
-                .then(() => {
-                    console.log('Data saved successfully to Firebase');
-                })
-                .catch((error) => {
-                    console.error('Error saving data to Firebase: ', error);
-                });
-        }
-        
-        function loadFromFirebase(callback) {
-            if (!firebaseInitialized || !database) {
-                console.log("Firebase not available, using local data");
-                if (callback) callback();
-                return;
-            }
-            
-            database.ref('vmCourierData').once('value')
-                .then((snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        if (data.logbookEntries) logbookEntries = data.logbookEntries;
-                        if (data.deletedEntries) deletedEntries = data.deletedEntries;
-                        if (data.editRequests) editRequests = data.editRequests;
-                        if (data.activityLogs) activityLogs = data.activityLogs;
-                        if (data.entryRemarks) entryRemarks = data.entryRemarks;
-                    }
-                    if (callback) callback();
-                })
-                .catch((error) => {
-                    console.error("Error loading data from Firebase: ", error);
-                    if (callback) callback();
-                });
-        }
-        
-        function setupRealtimeUpdates() {
-            if (!firebaseInitialized || !database) {
-                console.log("Firebase not available, skipping realtime updates");
-                return;
-            }
-            
-            database.ref('vmCourierData').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    if (data.logbookEntries) logbookEntries = data.logbookEntries;
-                    if (data.deletedEntries) deletedEntries = data.deletedEntries;
-                    if (data.editRequests) editRequests = data.editRequests;
-                    if (data.activityLogs) activityLogs = data.activityLogs;
-                    if (data.entryRemarks) entryRemarks = data.entryRemarks;
-                }
-                updateUI();
-            });
-        }
-        
         // Initialize Application
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM loaded, initializing app");
-            
-            // Always use local users for authentication
-            users = [...localUsers];
-            
-            // Try to load from Firebase but don't block
-            loadFromFirebase(() => {
-                console.log("Initial data load complete");
-            });
-            
+            loadFromStorage();
             checkLoginStatus();
             setupEventListeners();
-            
-            // Show debug info
-            showDebugInfo();
         });
         
         // Event Listeners
@@ -881,42 +706,14 @@
             document.getElementById('entryPhoto').addEventListener('change', handlePhotoPreview);
         }
         
-        // Debug Functions
-        function showDebugInfo() {
-            const debugPanel = document.getElementById('debugPanel');
-            debugPanel.style.display = 'block';
-            debugPanel.innerHTML = `
-                <strong>Debug Information:</strong><br>
-                Firebase Initialized: ${firebaseInitialized}<br>
-                Available Users: ${JSON.stringify(localUsers, null, 2)}
-            `;
-        }
-        
-        function debugLogin() {
-            const id = document.getElementById('loginId').value;
-            const password = document.getElementById('loginPassword').value;
-            const debugDiv = document.getElementById('debugInfo');
-            
-            let debugInfo = `
-                <strong>Login Debug Info:</strong><br>
-                User ID: "${id}"<br>
-                Password: "${password}"<br>
-                Matching User: ${JSON.stringify(localUsers.find(u => u.id === id && u.password === password))}
-            `;
-            
-            debugDiv.innerHTML = debugInfo;
-            debugDiv.style.display = 'block';
-        }
-        
-        // Login Management - Fixed to use local users
+        // Login Management
         function checkLoginStatus() {
             const savedUser = localStorage.getItem('vmCourierUser');
             const rememberMe = localStorage.getItem('vmCourierRemember');
             
             if (savedUser && rememberMe === 'true') {
                 const userData = JSON.parse(savedUser);
-                // Check against local users
-                const user = localUsers.find(u => u.id === userData.id);
+                const user = users.find(u => u.id === userData.id);
                 if (user) {
                     loginUser(user);
                     return;
@@ -928,14 +725,11 @@
         
         function handleLogin(e) {
             e.preventDefault();
-            debugLogin(); // Show debug info
-            
             const id = document.getElementById('loginId').value;
             const password = document.getElementById('loginPassword').value;
             const rememberMe = document.getElementById('rememberMe').checked;
             
-            // Check against local users
-            const user = localUsers.find(u => u.id === id && u.password === password);
+            const user = users.find(u => u.id === id && u.password === password);
             
             if (user) {
                 if (rememberMe) {
@@ -964,9 +758,6 @@
                 document.getElementById('activityLogSection').style.display = 'block';
             }
             
-            // Setup real-time updates
-            setupRealtimeUpdates();
-            
             updateUI();
         }
         
@@ -975,12 +766,6 @@
             currentUser = null;
             localStorage.removeItem('vmCourierUser');
             localStorage.removeItem('vmCourierRemember');
-            
-            // Remove Firebase listener if available
-            if (database) {
-                database.ref('vmCourierData').off();
-            }
-            
             showLoginPage();
         }
         
@@ -1060,15 +845,10 @@
                 const editRequestBadge = hasEditRequest ? 
                     '<span class="edit-request-badge ms-2">Edit Requested</span>' : '';
                 
-                // Get courier type badge class
-                const courierTypeClass = entry.courierType ? 
-                    `courier-${entry.courierType.toLowerCase()}` : 'courier-other';
-                
                 row.innerHTML = `
                     <td>${entry.date}</td>
                     <td>${entry.pic}${editRequestBadge}</td>
                     <td><span class="badge bg-primary">${entry.destination}</span></td>
-                    <td><span class="badge ${courierTypeClass}">${entry.courierType || 'N/A'}</span></td>
                     <td><span class="text-muted">${entry.cashbill || 'N/A'}</span></td>
                     <td><span class="text-muted">${entry.consignment || 'N/A'}</span></td>
                     <td>
@@ -1117,7 +897,7 @@
                         <i class="fas fa-edit"></i>
                     </button>`;
                 } else if (entry.createdBy === currentUser.id) {
-                    buttons += `<button class="btn btn-sm btn-warning me-1" onclick="requestEdit(${entry.id})">
+                    buttons += `<button class="btn btn-sm btn-warning me-1" onclick="showCommittedEditAlert()">
                         <i class="fas fa-edit"></i>
                     </button>`;
                 }
@@ -1137,18 +917,17 @@
             }
             
             // Commit/Uncommit button
-            if (currentUser.canCommit && (currentUser.role === 'admin' || entry.createdBy === currentUser.id)) {
-                if (entry.committed) {
-                    if (currentUser.role === 'admin') {
-                        buttons += `<button class="btn btn-sm btn-secondary" onclick="uncommitEntry(${entry.id})">
-                            <i class="fas fa-unlock"></i>
-                        </button>`;
-                    }
-                } else {
+            if (!entry.committed) {
+                // Allow both users with commit permission AND the entry creator to commit
+                if (currentUser.canCommit || entry.createdBy === currentUser.id) {
                     buttons += `<button class="btn btn-sm btn-success" onclick="commitEntry(${entry.id})">
                         <i class="fas fa-lock"></i> Commit
                     </button>`;
                 }
+            } else if (currentUser.role === 'admin') {
+                buttons += `<button class="btn btn-sm btn-secondary" onclick="uncommitEntry(${entry.id})">
+                    <i class="fas fa-unlock"></i>
+                </button>`;
             }
             
             return buttons;
@@ -1163,20 +942,18 @@
             document.getElementById('entryPIC').value = currentUser.name;
             document.getElementById('entryCashbill').value = '';
             document.getElementById('entryConsignment').value = '';
-            document.getElementById('entryCourierType').value = '';
             document.getElementById('photoPreview').innerHTML = '';
         }
         
         function saveEntry() {
             const date = document.getElementById('entryDate').value;
             const destination = document.getElementById('entryDestination').value;
-            const courierType = document.getElementById('entryCourierType').value;
             const cashbill = document.getElementById('entryCashbill').value;
             const consignment = document.getElementById('entryConsignment').value;
             const photoFile = document.getElementById('entryPhoto').files[0];
             const remarks = document.getElementById('entryRemarks').value;
             
-            if (!date || !destination || !courierType || !cashbill || !consignment) {
+            if (!date || !destination || !cashbill || !consignment) {
                 alert('Please fill in all required fields');
                 return;
             }
@@ -1185,22 +962,21 @@
             if (photoFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    saveEntryWithPhoto(date, destination, courierType, cashbill, consignment, remarks, e.target.result);
+                    saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, e.target.result);
                 };
                 reader.readAsDataURL(photoFile);
             } else {
-                saveEntryWithPhoto(date, destination, courierType, cashbill, consignment, remarks, null);
+                saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, null);
             }
         }
         
-        function saveEntryWithPhoto(date, destination, courierType, cashbill, consignment, remarks, photoData) {
+        function saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, photoData) {
             if (currentEntryId) {
                 // Edit existing entry
                 const entry = logbookEntries.find(e => e.id === currentEntryId);
                 if (entry) {
                     entry.date = date;
                     entry.destination = destination;
-                    entry.courierType = courierType;
                     entry.cashbill = cashbill;
                     entry.consignment = consignment;
                     if (photoData) entry.photo = photoData;
@@ -1224,7 +1000,6 @@
                     date: date,
                     pic: currentUser.name,
                     destination: destination,
-                    courierType: courierType,
                     cashbill: cashbill,
                     consignment: consignment,
                     photo: photoData,
@@ -1245,9 +1020,15 @@
                 }
                 
                 logActivity('Add Entry', `New entry created by ${currentUser.name}`);
+                
+                // Submit to Google Form for new entries
+                submitToGoogleForm(newEntry);
+                
+                // Show success message
+                showSuccessMessage('Entry created successfully and submitted to Google Form!');
             }
             
-            saveToFirebase();
+            saveToStorage();
             updateUI();
             bootstrap.Modal.getInstance(document.getElementById('entryModal')).hide();
         }
@@ -1261,7 +1042,6 @@
             document.getElementById('entryDate').value = entry.date;
             document.getElementById('entryPIC').value = entry.pic;
             document.getElementById('entryDestination').value = entry.destination;
-            document.getElementById('entryCourierType').value = entry.courierType || '';
             document.getElementById('entryCashbill').value = entry.cashbill || '';
             document.getElementById('entryConsignment').value = entry.consignment || '';
             document.getElementById('entryRemarks').value = '';
@@ -1283,7 +1063,7 @@
                 const entry = logbookEntries.splice(entryIndex, 1)[0];
                 deletedEntries.unshift(entry);
                 logActivity('Delete Entry', `Entry #${entryId} deleted by ${currentUser.name}`);
-                saveToFirebase();
+                saveToStorage();
                 updateUI();
             }
         }
@@ -1295,8 +1075,10 @@
                 entry.committedBy = currentUser.id;
                 entry.committedAt = new Date().toISOString();
                 logActivity('Commit Entry', `Entry #${entryId} committed by ${currentUser.name}`);
-                saveToFirebase();
+                saveToStorage();
                 updateUI();
+                
+                showSuccessMessage('Entry committed successfully!');
             }
         }
         
@@ -1317,8 +1099,10 @@
                 });
                 
                 logActivity('Uncommit Entry', `Entry #${entryId} uncommitted by ${currentUser.name}`);
-                saveToFirebase();
+                saveToStorage();
                 updateUI();
+                
+                showSuccessMessage('Entry uncommitted successfully!');
             }
         }
         
@@ -1328,7 +1112,7 @@
                 const entry = deletedEntries.splice(entryIndex, 1)[0];
                 logbookEntries.unshift(entry);
                 logActivity('Restore Entry', `Entry #${entryId} restored by ${currentUser.name}`);
-                saveToFirebase();
+                saveToStorage();
                 updateUI();
             }
         }
@@ -1341,7 +1125,7 @@
                 deletedEntries.splice(entryIndex, 1);
                 delete entryRemarks[entryId];
                 logActivity('Permanent Delete', `Entry #${entryId} permanently deleted by ${currentUser.name}`);
-                saveToFirebase();
+                saveToStorage();
                 updateUI();
             }
         }
@@ -1396,12 +1180,16 @@
             });
             
             logActivity('Add Remark', `Remark added to entry #${currentRemarksEntryId} by ${currentUser.name}`);
-            saveToFirebase();
+            saveToStorage();
             viewRemarks(currentRemarksEntryId);
             renderLogbookEntries();
         }
         
         // Edit Request Management
+        function showCommittedEditAlert() {
+            alert('This entry is committed and cannot be edited. Please contact Admin (Danial Danish - ID: 7434) to uncommit this entry first.');
+        }
+        
         function requestEdit(entryId) {
             currentEntryId = entryId;
             document.getElementById('editRequestReason').value = '';
@@ -1427,7 +1215,7 @@
             
             editRequests.unshift(request);
             logActivity('Edit Request', `Edit request submitted for entry #${currentEntryId} by ${currentUser.name}`);
-            saveToFirebase();
+            saveToStorage();
             updateUI();
             bootstrap.Modal.getInstance(document.getElementById('editRequestModal')).hide();
             
@@ -1455,7 +1243,7 @@
                 usersTitle.textContent = 'All Users';
                 usersList.innerHTML = '';
                 
-                localUsers.forEach(user => {
+                users.forEach(user => {
                     const userCard = document.createElement('div');
                     userCard.className = 'card mb-3';
                     userCard.innerHTML = `
@@ -1519,11 +1307,11 @@
         }
         
         function toggleCommitPermission(userId) {
-            const user = localUsers.find(u => u.id === userId);
+            const user = users.find(u => u.id === userId);
             if (user && user.role !== 'admin') {
                 user.canCommit = !user.canCommit;
                 logActivity('Toggle Permission', `Commit permission ${user.canCommit ? 'granted to' : 'revoked from'} ${user.name}`);
-                saveToFirebase();
+                saveToStorage();
             }
         }
         
@@ -1616,7 +1404,7 @@
                 userId: currentUser.id,
                 timestamp: new Date().toISOString()
             });
-            saveToFirebase();
+            saveToStorage();
         }
         
         function updateUI() {
@@ -1625,6 +1413,87 @@
                 if (document.getElementById('usersPage').classList.contains('active')) {
                     loadUsersPage();
                 }
+            }
+        }
+        
+        // Google Form Integration
+        function submitToGoogleForm(entryData) {
+            // Google Form URL
+            const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSerSN17AnQ7Z_j-wYOOi0GYKvkKaSc44N_7I3QmDzEhdSAYDg/formResponse';
+            
+            // Create a hidden form to submit data
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = formUrl;
+            form.target = '_blank'; // Open in new tab to avoid leaving the app
+            
+            // Add form fields (replace with your actual field IDs)
+            const fields = {
+                'entry.2005620554': entryData.date,        // Date field ID
+                'entry.1045781291': entryData.pic,         // PIC field ID
+                'entry.1065046570': entryData.destination, // Destination field ID
+                'entry.1166974658': entryData.cashbill,    // Cashbill field ID
+                'entry.839337160': entryData.consignment   // Consignment field ID
+            };
+            
+            // Add fields to the form
+            for (const [key, value] of Object.entries(fields)) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value || ''; // Handle empty values
+                form.appendChild(input);
+            }
+            
+            // Append form to body and submit
+            document.body.appendChild(form);
+            form.submit();
+            
+            // Remove form after submission
+            setTimeout(() => {
+                document.body.removeChild(form);
+            }, 1000);
+        }
+        
+        // Success Message Function
+        function showSuccessMessage(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto dismiss after 3 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+        
+        // Storage Management
+        function saveToStorage() {
+            localStorage.setItem('vmCourierData', JSON.stringify({
+                users: users,
+                logbookEntries: logbookEntries,
+                deletedEntries: deletedEntries,
+                editRequests: editRequests,
+                activityLogs: activityLogs,
+                entryRemarks: entryRemarks
+            }));
+        }
+        
+        function loadFromStorage() {
+            const data = localStorage.getItem('vmCourierData');
+            if (data) {
+                const parsed = JSON.parse(data);
+                users = parsed.users || users;
+                logbookEntries = parsed.logbookEntries || [];
+                deletedEntries = parsed.deletedEntries || [];
+                editRequests = parsed.editRequests || [];
+                activityLogs = parsed.activityLogs || [];
+                entryRemarks = parsed.entryRemarks || {};
             }
         }
     </script>
