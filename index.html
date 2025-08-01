@@ -355,6 +355,23 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 0.2rem rgba(44,62,80,0.15);
         }
+        
+        .sync-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .sync-indicator.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -410,6 +427,10 @@
                             <span id="editRequestBadge" class="notification-badge" style="display: none;">0</span>
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="syncWithGoogleSheets()">
+                                <i class="fas fa-sync me-2"></i>Sync with Google Sheets
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" onclick="logout()">
                                 <i class="fas fa-sign-out-alt me-2"></i>Logout
                             </a></li>
@@ -667,6 +688,12 @@
             </div>
         </div>
     </div>
+    
+    <!-- Sync Indicator -->
+    <div id="syncIndicator" class="sync-indicator">
+        <i class="fas fa-sync fa-spin me-2"></i>Syncing with Google Sheets...
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Application State
@@ -674,6 +701,9 @@
         let currentEntryId = null;
         let currentRemarksEntryId = null;
         let showingDeleted = false;
+        
+        // Google Sheets Integration
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzfY_-QNcHLHf9YiGzPGnIJ7eEnYbC0xYKN9aXvONjZkYmTgk3KsyVxH-Uj19YHs0Bc/exec";
         
         // Data Storage
         let users = [
@@ -698,6 +728,9 @@
             loadFromStorage();
             checkLoginStatus();
             setupEventListeners();
+            
+            // Auto-sync with Google Sheets every 5 minutes
+            setInterval(syncWithGoogleSheets, 300000);
         });
         
         // Event Listeners
@@ -738,6 +771,9 @@
                 }
                 loginUser(user);
                 logActivity('Login', `${user.name} logged in`);
+                
+                // Sync with Google Sheets after login
+                syncWithGoogleSheets();
             } else {
                 showLoginError('Invalid ID or password');
             }
@@ -992,6 +1028,9 @@
                     }
                     
                     logActivity('Edit Entry', `Entry #${currentEntryId} edited by ${currentUser.name}`);
+                    
+                    // Update Google Sheets
+                    updateGoogleSheet(entry);
                 }
             } else {
                 // Add new entry
@@ -1021,11 +1060,11 @@
                 
                 logActivity('Add Entry', `New entry created by ${currentUser.name}`);
                 
-                // Submit to Google Form for new entries
-                submitToGoogleForm(newEntry);
+                // Submit to Google Sheets
+                submitToGoogleSheet(newEntry);
                 
                 // Show success message
-                showSuccessMessage('Entry created successfully and submitted to Google Form!');
+                showSuccessMessage('Entry created successfully and submitted to Google Sheets!');
             }
             
             saveToStorage();
@@ -1063,6 +1102,10 @@
                 const entry = logbookEntries.splice(entryIndex, 1)[0];
                 deletedEntries.unshift(entry);
                 logActivity('Delete Entry', `Entry #${entryId} deleted by ${currentUser.name}`);
+                
+                // Update Google Sheets
+                deleteFromGoogleSheet(entry);
+                
                 saveToStorage();
                 updateUI();
             }
@@ -1075,6 +1118,10 @@
                 entry.committedBy = currentUser.id;
                 entry.committedAt = new Date().toISOString();
                 logActivity('Commit Entry', `Entry #${entryId} committed by ${currentUser.name}`);
+                
+                // Update Google Sheets
+                updateGoogleSheet(entry);
+                
                 saveToStorage();
                 updateUI();
                 
@@ -1099,6 +1146,10 @@
                 });
                 
                 logActivity('Uncommit Entry', `Entry #${entryId} uncommitted by ${currentUser.name}`);
+                
+                // Update Google Sheets
+                updateGoogleSheet(entry);
+                
                 saveToStorage();
                 updateUI();
                 
@@ -1112,6 +1163,10 @@
                 const entry = deletedEntries.splice(entryIndex, 1)[0];
                 logbookEntries.unshift(entry);
                 logActivity('Restore Entry', `Entry #${entryId} restored by ${currentUser.name}`);
+                
+                // Update Google Sheets
+                updateGoogleSheet(entry);
+                
                 saveToStorage();
                 updateUI();
             }
@@ -1122,9 +1177,13 @@
             
             const entryIndex = deletedEntries.findIndex(e => e.id === entryId);
             if (entryIndex !== -1) {
-                deletedEntries.splice(entryIndex, 1);
+                const entry = deletedEntries.splice(entryIndex, 1)[0];
                 delete entryRemarks[entryId];
                 logActivity('Permanent Delete', `Entry #${entryId} permanently deleted by ${currentUser.name}`);
+                
+                // Delete from Google Sheets
+                deleteFromGoogleSheet(entry);
+                
                 saveToStorage();
                 updateUI();
             }
@@ -1416,49 +1475,195 @@
             }
         }
         
-        // Google Form Integration
-        function submitToGoogleForm(entryData) {
-            // Google Form URL
-            const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSerSN17AnQ7Z_j-wYOOi0GYKvkKaSc44N_7I3QmDzEhdSAYDg/formResponse';
+        // Google Sheets Integration Functions
+        function submitToGoogleSheet(entryData) {
+            showSyncIndicator();
             
-            // Create a hidden form to submit data
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = formUrl;
-            form.target = '_blank'; // Open in new tab to avoid leaving the app
+            const formData = new FormData();
+            formData.append('date', entryData.date);
+            formData.append('pic', entryData.pic);
+            formData.append('destination', entryData.destination);
+            formData.append('cashbill', entryData.cashbill || '');
+            formData.append('consignment', entryData.consignment || '');
+            formData.append('id', entryData.id);
+            formData.append('committed', entryData.committed);
+            formData.append('createdBy', entryData.createdBy);
+            formData.append('createdAt', entryData.createdAt);
+            formData.append('lastModified', entryData.lastModified);
+            formData.append('action', 'submit');
             
-            // Add form fields (replace with your actual field IDs)
-            const fields = {
-                'entry.2005620554': entryData.date,        // Date field ID
-                'entry.1045781291': entryData.pic,         // PIC field ID
-                'entry.1065046570': entryData.destination, // Destination field ID
-                'entry.1166974658': entryData.cashbill,    // Cashbill field ID
-                'entry.839337160': entryData.consignment   // Consignment field ID
-            };
-            
-            // Add fields to the form
-            for (const [key, value] of Object.entries(fields)) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value || ''; // Handle empty values
-                form.appendChild(input);
-            }
-            
-            // Append form to body and submit
-            document.body.appendChild(form);
-            form.submit();
-            
-            // Remove form after submission
-            setTimeout(() => {
-                document.body.removeChild(form);
-            }, 1000);
+            fetch(GOOGLE_SHEETS_URL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    console.log('Data submitted to Google Sheets successfully');
+                    hideSyncIndicator();
+                } else {
+                    console.error('Error submitting to Google Sheets:', data.error);
+                    hideSyncIndicator();
+                    showErrorMessage('Error submitting to Google Sheets');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting to Google Sheets:', error);
+                hideSyncIndicator();
+                showErrorMessage('Network error while submitting to Google Sheets');
+            });
         }
         
-        // Success Message Function
+        function updateGoogleSheet(entryData) {
+            showSyncIndicator();
+            
+            const formData = new FormData();
+            formData.append('date', entryData.date);
+            formData.append('pic', entryData.pic);
+            formData.append('destination', entryData.destination);
+            formData.append('cashbill', entryData.cashbill || '');
+            formData.append('consignment', entryData.consignment || '');
+            formData.append('id', entryData.id);
+            formData.append('committed', entryData.committed);
+            formData.append('createdBy', entryData.createdBy);
+            formData.append('createdAt', entryData.createdAt);
+            formData.append('lastModified', entryData.lastModified);
+            formData.append('action', 'update');
+            
+            fetch(GOOGLE_SHEETS_URL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    console.log('Data updated in Google Sheets successfully');
+                    hideSyncIndicator();
+                } else {
+                    console.error('Error updating Google Sheets:', data.error);
+                    hideSyncIndicator();
+                    showErrorMessage('Error updating Google Sheets');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating Google Sheets:', error);
+                hideSyncIndicator();
+                showErrorMessage('Network error while updating Google Sheets');
+            });
+        }
+        
+        function deleteFromGoogleSheet(entryData) {
+            showSyncIndicator();
+            
+            const formData = new FormData();
+            formData.append('id', entryData.id);
+            formData.append('action', 'delete');
+            
+            fetch(GOOGLE_SHEETS_URL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    console.log('Data deleted from Google Sheets successfully');
+                    hideSyncIndicator();
+                } else {
+                    console.error('Error deleting from Google Sheets:', data.error);
+                    hideSyncIndicator();
+                    showErrorMessage('Error deleting from Google Sheets');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting from Google Sheets:', error);
+                hideSyncIndicator();
+                showErrorMessage('Network error while deleting from Google Sheets');
+            });
+        }
+        
+        function syncWithGoogleSheets() {
+            if (!currentUser) return;
+            
+            showSyncIndicator();
+            
+            fetch(GOOGLE_SHEETS_URL)
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    // Process the data from Google Sheets
+                    const sheetData = data.data;
+                    
+                    // Create a map of existing entries by ID
+                    const existingEntriesMap = {};
+                    logbookEntries.forEach(entry => {
+                        existingEntriesMap[entry.id] = entry;
+                    });
+                    
+                    // Process each row from Google Sheets
+                    sheetData.forEach(row => {
+                        if (row.id && !existingEntriesMap[row.id]) {
+                            // This entry exists in Google Sheets but not in our local storage
+                            const newEntry = {
+                                id: row.id,
+                                date: row.date,
+                                pic: row.pic,
+                                destination: row.destination,
+                                cashbill: row.cashbill,
+                                consignment: row.consignment,
+                                committed: row.committed === 'TRUE' || row.committed === true,
+                                createdBy: row.createdBy,
+                                createdAt: row.createdAt,
+                                lastModified: row.lastModified
+                            };
+                            
+                            logbookEntries.push(newEntry);
+                        }
+                    });
+                    
+                    saveToStorage();
+                    updateUI();
+                    hideSyncIndicator();
+                    showSuccessMessage('Synced with Google Sheets successfully!');
+                } else {
+                    console.error('Error syncing with Google Sheets:', data.error);
+                    hideSyncIndicator();
+                    showErrorMessage('Error syncing with Google Sheets');
+                }
+            })
+            .catch(error => {
+                console.error('Error syncing with Google Sheets:', error);
+                hideSyncIndicator();
+                showErrorMessage('Network error while syncing with Google Sheets');
+            });
+        }
+        
+        function showSyncIndicator() {
+            document.getElementById('syncIndicator').classList.add('show');
+        }
+        
+        function hideSyncIndicator() {
+            document.getElementById('syncIndicator').classList.remove('show');
+        }
+        
         function showSuccessMessage(message) {
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto dismiss after 3 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+        
+        function showErrorMessage(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
             alertDiv.style.zIndex = '9999';
             alertDiv.innerHTML = `
                 ${message}
