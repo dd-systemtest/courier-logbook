@@ -528,6 +528,30 @@
         .btn-warning:hover {
             background: #e67e22;
         }
+        
+        .real-time-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: var(--info);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .real-time-indicator.show {
+            display: block;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -602,8 +626,8 @@
                             <li><a class="dropdown-item" href="#" onclick="toggleDebug()">
                                 <i class="fas fa-bug me-2"></i>Toggle Debug
                             </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="syncWithGoogleSheets()">
-                                <i class="fas fa-sync me-2"></i>Sync with Google Sheets
+                            <li><a class="dropdown-item" href="#" onclick="forceSync()">
+                                <i class="fas fa-sync me-2"></i>Force Sync Now
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" onclick="logout()">
@@ -614,6 +638,12 @@
                 </div>
             </div>
         </nav>
+        
+        <!-- Real-time Sync Indicator -->
+        <div id="realTimeIndicator" class="real-time-indicator">
+            <i class="fas fa-sync-alt me-1"></i>Syncing...
+        </div>
+        
         <!-- Logbook Page -->
         <div id="logbookPage" class="page-section active">
             <div class="container mt-4">
@@ -984,6 +1014,7 @@
         let showingDeleted = false;
         let isOnline = navigator.onLine;
         let debugMode = false;
+        let syncInterval = null;
         
         // Google Sheets Integration
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwe84Ec0M5f_0S2QwPWwIrNeGYblfk0AfacEGLTQdRsoRRuP1kXnqrpGXGUrLzyvuyX/exec";
@@ -1026,6 +1057,7 @@
                 debugLog('Debug mode enabled');
                 debugLog('Current user: ' + (currentUser ? currentUser.name : 'None'));
                 debugLog('Logbook entries: ' + logbookEntries.length);
+                debugLog('Edit requests: ' + editRequests.length);
             }
         }
         
@@ -1046,13 +1078,104 @@
                 showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
             });
             
-            // Auto-sync with Google Sheets every 5 minutes when online
-            setInterval(() => {
-                if (isOnline && currentUser) {
-                    syncWithGoogleSheets();
-                }
-            }, 300000);
+            // Set up real-time sync interval
+            setupRealTimeSync();
         });
+        
+        // Setup real-time synchronization
+        function setupRealTimeSync() {
+            // Clear any existing interval
+            if (syncInterval) {
+                clearInterval(syncInterval);
+            }
+            
+            // Sync every 30 seconds when online
+            syncInterval = setInterval(() => {
+                if (isOnline && currentUser) {
+                    performRealTimeSync();
+                }
+            }, 30000);
+            
+            // Also sync when page becomes visible again
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && isOnline && currentUser) {
+                    performRealTimeSync();
+                }
+            });
+        }
+        
+        // Perform real-time sync for edit requests and critical data
+        function performRealTimeSync() {
+            if (!currentUser || !isOnline) return;
+            
+            debugLog('Performing real-time sync...');
+            showRealTimeIndicator();
+            
+            fetch(GOOGLE_SHEETS_URL + '?action=sync_requests&timestamp=' + Date.now())
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    const serverRequests = data.editRequests || [];
+                    const serverEntries = data.entries || [];
+                    
+                    // Check for new edit requests
+                    const localRequestIds = editRequests.map(r => r.id);
+                    const newRequests = serverRequests.filter(r => !localRequestIds.includes(r.id));
+                    
+                    if (newRequests.length > 0) {
+                        debugLog('Found ' + newRequests.length + ' new edit requests');
+                        // Add new requests to local storage
+                        newRequests.forEach(request => {
+                            editRequests.unshift(request);
+                        });
+                        updateUI();
+                        
+                        // Show notification for admin users
+                        if (currentUser.role === 'admin') {
+                            showSuccessMessage('New edit request received!');
+                        }
+                    }
+                    
+                    // Check for resolved requests
+                    const resolvedRequests = editRequests.filter(localReq => {
+                        const serverReq = serverRequests.find(r => r.id === localReq.id);
+                        return serverReq && serverReq.resolved && !localReq.resolved;
+                    });
+                    
+                    if (resolvedRequests.length > 0) {
+                        debugLog('Found ' + resolvedRequests.length + ' resolved requests');
+                        // Update local requests
+                        resolvedRequests.forEach(localReq => {
+                            const serverReq = serverRequests.find(r => r.id === localReq.id);
+                            if (serverReq) {
+                                localReq.resolved = serverReq.resolved;
+                                localReq.resolvedBy = serverReq.resolvedBy;
+                                localReq.resolvedAt = serverReq.resolvedAt;
+                                localReq.status = serverReq.status;
+                            }
+                        });
+                        updateUI();
+                        
+                        // Show notification for requesters
+                        resolvedRequests.forEach(req => {
+                            if (req.requestedBy === currentUser.id) {
+                                showSuccessMessage('Your edit request has been ' + (req.status || 'processed'));
+                            }
+                        });
+                    }
+                    
+                    hideRealTimeIndicator();
+                    saveToLocalStorage();
+                } else {
+                    debugLog('Real-time sync failed: ' + data.error);
+                    hideRealTimeIndicator();
+                }
+            })
+            .catch(error => {
+                debugLog('Real-time sync error: ' + error.message);
+                hideRealTimeIndicator();
+            });
+        }
         
         // Event Listeners
         function setupEventListeners() {
@@ -1114,6 +1237,9 @@
                 document.getElementById('adminApprovalsLink').style.display = 'block';
             }
             
+            // Set up real-time sync
+            setupRealTimeSync();
+            
             // Load data from Google Sheets
             loadDataFromGoogleSheets();
             
@@ -1124,6 +1250,13 @@
         function logout() {
             logActivity('Logout', `${currentUser.name} logged out`);
             debugLog('User logged out: ' + currentUser.name);
+            
+            // Clear sync interval
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            }
+            
             currentUser = null;
             localStorage.removeItem('vmCourierUser');
             localStorage.removeItem('vmCourierRemember');
@@ -1172,6 +1305,11 @@
                 loadUsersPage();
             } else if (page === 'adminApprovals') {
                 loadAdminApprovalsPage();
+            }
+            
+            // Perform real-time sync when switching pages
+            if (isOnline && currentUser) {
+                setTimeout(() => performRealTimeSync(), 500);
             }
         }
         
@@ -1467,7 +1605,7 @@
                         if (isOnline) {
                             updateGoogleSheet(entry);
                         } else {
-                            showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                            showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                         }
                     } else {
                         debugLog('Error: Entry not found for editing: ' + currentEntryId);
@@ -1574,7 +1712,7 @@
                 if (isOnline) {
                     deleteFromGoogleSheet(entry);
                 } else {
-                    showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                    showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                 }
                 
                 saveToLocalStorage();
@@ -1598,7 +1736,7 @@
                 if (isOnline) {
                     updateGoogleSheet(entry);
                 } else {
-                    showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                    showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                 }
                 
                 saveToLocalStorage();
@@ -1630,7 +1768,7 @@
                 if (isOnline) {
                     updateGoogleSheet(entry);
                 } else {
-                    showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                    showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                 }
                 
                 saveToLocalStorage();
@@ -1657,7 +1795,7 @@
                 if (isOnline) {
                     updateGoogleSheet(entry);
                 } else {
-                    showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                    showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                 }
                 
                 saveToLocalStorage();
@@ -1676,7 +1814,7 @@
                 if (isOnline) {
                     updateGoogleSheet(entry);
                 } else {
-                    showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                    showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                 }
                 
                 saveToLocalStorage();
@@ -1696,7 +1834,7 @@
                 if (isOnline) {
                     deleteFromGoogleSheet(entry);
                 } else {
-                    showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                    showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                 }
                 
                 saveToLocalStorage();
@@ -1759,7 +1897,7 @@
             renderLogbookEntries();
         }
         
-        // Edit Request Management
+        // Edit Request Management with Enhanced Sync
         function requestEdit(entryId) {
             debugLog('Requesting edit for entry:', entryId);
             currentEntryId = entryId;
@@ -1790,11 +1928,51 @@
             
             editRequests.unshift(request);
             logActivity('Edit Request', `Edit request submitted for entry #${currentEntryId} by ${currentUser.name}`);
+            
+            // Save locally first
             saveToLocalStorage();
             updateUI();
-            bootstrap.Modal.getInstance(document.getElementById('editRequestModal')).hide();
             
-            showSuccessMessage('Edit request submitted. Please contact Admin (Danial Danish - ID: 7434) for approval.');
+            // Sync with Google Sheets immediately
+            if (isOnline) {
+                syncEditRequestToGoogleSheets(request)
+                    .then(() => {
+                        showSuccessMessage('Edit request submitted and synced successfully!');
+                    })
+                    .catch(error => {
+                        debugLog('Failed to sync edit request: ' + error.message);
+                        showErrorMessage('Edit request submitted locally. Will sync when online.');
+                    });
+            } else {
+                showSuccessMessage('Edit request submitted. Will sync when online.');
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('editRequestModal')).hide();
+        }
+        
+        // Sync edit request to Google Sheets
+        async function syncEditRequestToGoogleSheets(request) {
+            const formData = new FormData();
+            formData.append('action', 'sync_edit_request');
+            formData.append('requestId', request.id);
+            formData.append('entryId', request.entryId);
+            formData.append('requestedBy', request.requestedBy);
+            formData.append('requestedByName', request.requestedByName);
+            formData.append('reason', request.reason);
+            formData.append('timestamp', request.timestamp);
+            formData.append('resolved', request.resolved);
+            
+            const response = await fetch(GOOGLE_SHEETS_URL, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (data.result !== 'success') {
+                throw new Error(data.error || 'Failed to sync edit request');
+            }
+            
+            return data;
         }
         
         function updateEditRequestBadge() {
@@ -1978,8 +2156,28 @@
         function approveEditRequest(requestId) {
             const request = editRequests.find(r => r.id === requestId);
             if (request) {
-                uncommitEntry(request.entryId);
-                showSuccessMessage(`Edit request approved. Entry #${request.entryId} has been uncommitted and can now be edited.`);
+                // Update the request status
+                request.resolved = true;
+                request.resolvedBy = currentUser.id;
+                request.resolvedAt = getMalaysiaTime().toISOString();
+                request.status = 'approved';
+                
+                // Sync the approval to Google Sheets
+                if (isOnline) {
+                    syncEditRequestToGoogleSheets(request)
+                        .then(() => {
+                            uncommitEntry(request.entryId);
+                            showSuccessMessage(`Edit request approved and synced successfully!`);
+                        })
+                        .catch(error => {
+                            debugLog('Failed to sync approval: ' + error.message);
+                            uncommitEntry(request.entryId);
+                            showErrorMessage('Edit request approved. Sync will happen when online.');
+                        });
+                } else {
+                    uncommitEntry(request.entryId);
+                    showSuccessMessage('Edit request approved. Will sync when online.');
+                }
             }
         }
         
@@ -2137,15 +2335,34 @@
             
             const request = editRequests.find(r => r.id === requestId);
             if (request) {
+                // Update the request status
                 request.resolved = true;
                 request.resolvedBy = currentUser.id;
                 request.resolvedAt = getMalaysiaTime().toISOString();
                 request.status = 'rejected';
                 
-                logActivity('Reject Edit Request', `Edit request for entry #${request.entryId} rejected by ${currentUser.name}`);
-                saveToLocalStorage();
-                loadAdminApprovalsPage();
-                showSuccessMessage('Edit request rejected successfully.');
+                // Sync the rejection to Google Sheets
+                if (isOnline) {
+                    syncEditRequestToGoogleSheets(request)
+                        .then(() => {
+                            logActivity('Reject Edit Request', `Edit request for entry #${request.entryId} rejected by ${currentUser.name}`);
+                            saveToLocalStorage();
+                            loadAdminApprovalsPage();
+                            showSuccessMessage('Edit request rejected and synced successfully!');
+                        })
+                        .catch(error => {
+                            debugLog('Failed to sync rejection: ' + error.message);
+                            logActivity('Reject Edit Request', `Edit request for entry #${request.entryId} rejected by ${currentUser.name}`);
+                            saveToLocalStorage();
+                            loadAdminApprovalsPage();
+                            showErrorMessage('Edit request rejected. Sync will happen when online.');
+                        });
+                } else {
+                    logActivity('Reject Edit Request', `Edit request for entry #${request.entryId} rejected by ${currentUser.name}`);
+                    saveToLocalStorage();
+                    loadAdminApprovalsPage();
+                    showSuccessMessage('Edit request rejected. Will sync when online.');
+                }
             }
         }
         
@@ -2210,6 +2427,19 @@
                     updateAdminApprovalBadge();
                 }
             }
+        }
+        
+        // Force sync function
+        function forceSync() {
+            if (!currentUser) return;
+            
+            if (!isOnline) {
+                showErrorMessage('You are offline. Cannot sync with Google Sheets.');
+                return;
+            }
+            
+            showSuccessMessage('Force sync initiated...');
+            loadDataFromGoogleSheets();
         }
         
         // Google Sheets Integration Functions
@@ -2342,12 +2572,14 @@
             
             showSyncIndicator();
             
-            fetch(GOOGLE_SHEETS_URL)
+            fetch(GOOGLE_SHEETS_URL + '?action=load_all&timestamp=' + Date.now())
             .then(response => response.json())
             .then(data => {
                 if (data.result === 'success') {
                     const sheetData = data.data || [];
+                    const sheetEditRequests = data.editRequests || [];
                     
+                    // Process logbook entries
                     const existingEntriesMap = {};
                     logbookEntries.forEach(entry => {
                         existingEntriesMap[entry.id] = entry;
@@ -2383,6 +2615,33 @@
                         }
                     });
                     
+                    // Process edit requests
+                    const existingRequestMap = {};
+                    editRequests.forEach(request => {
+                        existingRequestMap[request.id] = request;
+                    });
+                    
+                    sheetEditRequests.forEach(request => {
+                        if (!existingRequestMap[request.id]) {
+                            editRequests.push(request);
+                        } else {
+                            // Update existing request with server data
+                            const existingRequest = existingRequestMap[request.id];
+                            if (request.resolved && !existingRequest.resolved) {
+                                existingRequest.resolved = request.resolved;
+                                existingRequest.resolvedBy = request.resolvedBy;
+                                existingRequest.resolvedAt = request.resolvedAt;
+                                existingRequest.status = request.status;
+                                
+                                // Show notification if current user is affected
+                                if (request.requestedBy === currentUser.id) {
+                                    showSuccessMessage('Your edit request has been ' + (request.status || 'processed'));
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Sort entries by creation date
                     logbookEntries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                     
                     saveToLocalStorage();
@@ -2422,6 +2681,18 @@
         
         function hideSyncIndicator() {
             document.getElementById('syncIndicator').classList.remove('show');
+        }
+        
+        function showRealTimeIndicator() {
+            const indicator = document.getElementById('realTimeIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+        
+        function hideRealTimeIndicator() {
+            document.getElementById('realTimeIndicator').classList.remove('show');
         }
         
         function showSuccessMessage(message) {
