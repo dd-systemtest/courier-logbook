@@ -299,10 +299,15 @@
         
         .page-section {
             display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
         }
         
         .page-section.active {
             display: block;
+            opacity: 1;
+            transform: translateY(0);
         }
         
         .stats-card {
@@ -312,6 +317,11 @@
             padding: 2rem;
             margin-bottom: 1.5rem;
             box-shadow: 0 8px 25px rgba(44,62,80,0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
         }
         
         .stats-number {
@@ -457,6 +467,58 @@
             font-weight: 600;
             margin-bottom: 0.5rem;
         }
+        
+        .management-dropdown {
+            position: relative;
+        }
+        
+        .management-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            padding: 0.5rem 0;
+            min-width: 200px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .management-dropdown:hover .management-menu {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        
+        .management-item {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .management-item:hover {
+            background: var(--soft-gray);
+            color: var(--primary);
+        }
+        
+        .admin-approvals-card {
+            border-left: 4px solid var(--warning);
+        }
+        
+        .request-card {
+            transition: all 0.3s ease;
+        }
+        
+        .request-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
     </style>
 </head>
 <body>
@@ -499,12 +561,28 @@
                     <i class="fas fa-clipboard-list me-2"></i>VM Courier Logbook
                 </span>
                 <div class="navbar-nav ms-auto">
-                    <a class="nav-link active" href="#" onclick="showPage('logbook')">
-                        <i class="fas fa-book me-1"></i>Logbook
+                    <!-- Management Dropdown -->
+                    <div class="nav-item management-dropdown me-2">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-cogs me-1"></i>Management
+                        </a>
+                        <div class="management-menu">
+                            <a class="management-item" href="#" onclick="showPage('logbook')">
+                                <i class="fas fa-book me-2"></i>Logbook
+                            </a>
+                            <a class="management-item" href="#" onclick="showPage('users')">
+                                <i class="fas fa-users me-2"></i>Users
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Admin Approvals (only visible to admins) -->
+                    <a class="nav-link me-2" id="adminApprovalsLink" href="#" onclick="showPage('adminApprovals')" style="display: none;">
+                        <i class="fas fa-clipboard-check me-1"></i>Admin Approvals
+                        <span id="adminApprovalBadge" class="notification-badge" style="display: none;">0</span>
                     </a>
-                    <a class="nav-link" href="#" onclick="showPage('users')">
-                        <i class="fas fa-users me-1"></i>Users
-                    </a>
+                    
+                    <!-- Profile Dropdown -->
                     <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown">
                             <div class="user-avatar d-inline-flex me-2" id="userAvatar"></div>
@@ -651,6 +729,46 @@
                             </div>
                             <div class="card-body">
                                 <div id="activityLog" style="max-height: 400px; overflow-y: auto;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Admin Approvals Page -->
+        <div id="adminApprovalsPage" class="page-section">
+            <div class="container mt-4">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card admin-approvals-card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-clipboard-check me-2"></i>Admin Approvals
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Edit Requests Section -->
+                                <div class="approval-section">
+                                    <h6 class="approval-header">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Pending Edit Requests
+                                        <span class="badge bg-warning ms-2" id="editRequestsCount">0</span>
+                                    </h6>
+                                    <div id="editRequestsList">
+                                        <p class="text-muted">No pending edit requests.</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Uncommitted Entries Section -->
+                                <div class="approval-section">
+                                    <h6 class="approval-header">
+                                        <i class="fas fa-clock me-2"></i>Entries Awaiting Re-commit Approval
+                                        <span class="badge bg-info ms-2" id="uncommittedCount">0</span>
+                                    </h6>
+                                    <div id="uncommittedEntriesList">
+                                        <p class="text-muted">No entries awaiting re-commit approval.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -984,6 +1102,7 @@
             if (user.role === 'admin') {
                 document.getElementById('viewDeletedBtn').style.display = 'inline-block';
                 document.getElementById('activityLogSection').style.display = 'block';
+                document.getElementById('adminApprovalsLink').style.display = 'block';
             }
             
             // Load data from Google Sheets
@@ -1015,9 +1134,9 @@
             errorDiv.style.display = 'block';
         }
         
-        // Page Navigation
+        // Page Navigation with Animation
         function showPage(page) {
-            // Hide all pages
+            // Hide all pages with animation
             document.querySelectorAll('.page-section').forEach(section => {
                 section.classList.remove('active');
             });
@@ -1027,14 +1146,23 @@
                 link.classList.remove('active');
             });
             
-            // Show selected page
-            document.getElementById(page + 'Page').classList.add('active');
-            event.target.classList.add('active');
+            // Show selected page with animation
+            setTimeout(() => {
+                document.getElementById(page + 'Page').classList.add('active');
+            }, 100);
             
-            if (page === 'users') {
-                loadUsersPage();
-            } else if (page === 'logbook') {
+            // Set active nav link
+            if (page === 'adminApprovals') {
+                document.getElementById('adminApprovalsLink').classList.add('active');
+            }
+            
+            // Load page content
+            if (page === 'logbook') {
                 loadLogbookPage();
+            } else if (page === 'users') {
+                loadUsersPage();
+            } else if (page === 'adminApprovals') {
+                loadAdminApprovalsPage();
             }
         }
         
@@ -1896,6 +2024,119 @@
             new bootstrap.Modal(document.getElementById('entryDetailsModal')).show();
         }
         
+        // Admin Approvals Management
+        function loadAdminApprovalsPage() {
+            // Load edit requests
+            const editRequestsList = document.getElementById('editRequestsList');
+            const pendingRequests = editRequests.filter(r => !r.resolved);
+            
+            document.getElementById('editRequestsCount').textContent = pendingRequests.length;
+            
+            if (pendingRequests.length === 0) {
+                editRequestsList.innerHTML = '<p class="text-muted">No pending edit requests.</p>';
+            } else {
+                editRequestsList.innerHTML = '';
+                pendingRequests.forEach(request => {
+                    const requestCard = document.createElement('div');
+                    requestCard.className = 'card request-card mb-3';
+                    requestCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="card-title">Edit Request for Entry #${request.entryId}</h6>
+                                    <p class="mb-1"><strong>Requested by:</strong> ${request.requestedByName}</p>
+                                    <p class="mb-1"><strong>Reason:</strong> ${request.reason}</p>
+                                    <p class="text-muted mb-0"><small>${formatMalaysiaDateTime(request.timestamp)}</small></p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-success me-2" onclick="approveEditRequest(${request.id})">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                    <button class="btn btn-danger" onclick="rejectEditRequest(${request.id})">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    editRequestsList.appendChild(requestCard);
+                });
+            }
+            
+            // Load uncommitted entries
+            const uncommittedEntriesList = document.getElementById('uncommittedEntriesList');
+            const uncommittedEntries = logbookEntries.filter(e => !e.committed && e.uncommittedBy);
+            
+            document.getElementById('uncommittedCount').textContent = uncommittedEntries.length;
+            
+            if (uncommittedEntries.length === 0) {
+                uncommittedEntriesList.innerHTML = '<p class="text-muted">No entries awaiting re-commit approval.</p>';
+            } else {
+                uncommittedEntriesList.innerHTML = '';
+                uncommittedEntries.forEach(entry => {
+                    const entryCard = document.createElement('div');
+                    entryCard.className = 'card request-card mb-3';
+                    entryCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="card-title">Entry #${entry.id}</h6>
+                                    <p class="mb-1"><strong>PIC:</strong> ${entry.pic}</p>
+                                    <p class="mb-1"><strong>Destination:</strong> ${entry.destination}</p>
+                                    <p class="mb-1"><strong>Uncommitted by:</strong> ${users.find(u => u.id === entry.uncommittedBy)?.name || 'Unknown'}</p>
+                                    <p class="text-muted mb-0"><small>Uncommitted at: ${formatMalaysiaDateTime(entry.uncommittedAt)}</small></p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-success me-2" onclick="adminCommitEntry('${entry.id}')">
+                                        <i class="fas fa-check me-1"></i>Approve Commit
+                                    </button>
+                                    <button class="btn btn-primary" onclick="viewEntryDetails('${entry.id}')">
+                                        <i class="fas fa-eye me-1"></i>View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    uncommittedEntriesList.appendChild(entryCard);
+                });
+            }
+            
+            updateAdminApprovalBadge();
+        }
+        
+        function rejectEditRequest(requestId) {
+            if (!confirm('Are you sure you want to reject this edit request?')) return;
+            
+            const request = editRequests.find(r => r.id === requestId);
+            if (request) {
+                request.resolved = true;
+                request.resolvedBy = currentUser.id;
+                request.resolvedAt = getMalaysiaTime().toISOString();
+                request.status = 'rejected';
+                
+                logActivity('Reject Edit Request', `Edit request for entry #${request.entryId} rejected by ${currentUser.name}`);
+                saveToLocalStorage();
+                loadAdminApprovalsPage();
+                showSuccessMessage('Edit request rejected successfully.');
+            }
+        }
+        
+        function updateAdminApprovalBadge() {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            
+            const pendingRequests = editRequests.filter(r => !r.resolved).length;
+            const uncommittedEntries = logbookEntries.filter(e => !e.committed && e.uncommittedBy).length;
+            const total = pendingRequests + uncommittedEntries;
+            
+            const badge = document.getElementById('adminApprovalBadge');
+            if (total > 0) {
+                badge.textContent = total;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
         // Utility Functions
         function handlePhotoPreview() {
             const file = document.getElementById('entryPhoto').files[0];
@@ -1933,6 +2174,12 @@
                 loadLogbookPage();
                 if (document.getElementById('usersPage').classList.contains('active')) {
                     loadUsersPage();
+                }
+                if (document.getElementById('adminApprovalsPage').classList.contains('active')) {
+                    loadAdminApprovalsPage();
+                }
+                if (currentUser.role === 'admin') {
+                    updateAdminApprovalBadge();
                 }
             }
         }
