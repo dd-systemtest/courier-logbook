@@ -1019,11 +1019,11 @@
             tbody.innerHTML = '';
             
             const entriesToShow = showingDeleted ? deletedEntries : logbookEntries;
-            const filteredEntries = currentUser.role === 'admin' ? entriesToShow : 
-                entriesToShow.filter(e => e.createdBy === currentUser.id);
+            // Show all entries to all users (no filtering by creator)
+            let filteredEntries = entriesToShow;
             
             document.getElementById('entriesTitle').textContent = showingDeleted ? 
-                'Deleted Entries' : (currentUser.role === 'admin' ? 'All Entries' : 'My Entries');
+                'Deleted Entries' : 'All Entries';
             
             filteredEntries.forEach(entry => {
                 const row = document.createElement('tr');
@@ -1103,20 +1103,26 @@
             }
             
             let buttons = '';
+            const isCreator = entry.createdBy === currentUser.id;
             
             // Edit button logic
             if (entry.committed) {
+                // Only admin can edit committed entries directly
                 if (currentUser.role === 'admin') {
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
-                } else if (entry.createdBy === currentUser.id) {
+                } else if (isCreator) {
+                    // Non-admin users can request edit for their own committed entries
                     buttons += `<button class="btn btn-sm btn-warning me-1" onclick="requestEdit('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
                 }
             } else {
-                if (currentUser.role === 'admin' || entry.createdBy === currentUser.id) {
+                // For uncommitted entries:
+                // - Admin can edit any entry
+                // - Non-admin can only edit their own entries
+                if (currentUser.role === 'admin' || isCreator) {
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
@@ -1124,7 +1130,10 @@
             }
             
             // Delete button
-            if (currentUser.role === 'admin' || (entry.createdBy === currentUser.id && !entry.committed)) {
+            // - Admin can delete any entry
+            // - Non-admin can only delete their own uncommitted entries
+            if (currentUser.role === 'admin' || 
+                (isCreator && !entry.committed)) {
                 buttons += `<button class="btn btn-sm btn-danger me-1" onclick="deleteEntry('${entry.id}')">
                     <i class="fas fa-trash"></i>
                 </button>`;
@@ -1132,8 +1141,8 @@
             
             // Commit/Uncommit button
             if (!entry.committed) {
-                // Allow both users with commit permission AND the entry creator to commit
-                if (currentUser.canCommit || entry.createdBy === currentUser.id) {
+                // Only the creator of the entry can commit it
+                if (isCreator) {
                     buttons += `<button class="btn btn-sm btn-success" onclick="commitEntry('${entry.id}')">
                         <i class="fas fa-lock"></i> Commit
                     </button>`;
