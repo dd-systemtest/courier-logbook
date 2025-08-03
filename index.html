@@ -13,6 +13,7 @@
             --success: #27ae60;
             --danger: #e74c3c;
             --warning: #f39c12;
+            --info: #3498db;
             --light: #ffffff;
             --dark: #2c3e50;
             --soft-gray: #f8f9fa;
@@ -415,6 +416,33 @@
         .debug-panel.show {
             display: block;
         }
+        
+        .status-badge {
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+        
+        .status-pending {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .status-in-transit {
+            background-color: var(--info);
+            color: white;
+        }
+        
+        .status-delivered {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .status-return {
+            background-color: var(--danger);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -565,9 +593,11 @@
                                         <th>Destination</th>
                                         <th>Cashbill*</th>
                                         <th>Consignment*</th>
+                                        <th>Courier Type</th>
+                                        <th>Status</th>
                                         <th>Photo</th>
                                         <th>Remarks</th>
-                                        <th>Status</th>
+                                        <th>Entry Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -659,6 +689,32 @@
                                 <div class="mb-3">
                                     <label for="entryConsignment" class="form-label">Consignment Number *</label>
                                     <input type="text" class="form-control" id="entryConsignment" required placeholder="Enter consignment number">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="entryCourierType" class="form-label">Courier Type</label>
+                                    <select class="form-select" id="entryCourierType" required>
+                                        <option value="">Select Courier</option>
+                                        <option value="eDHL">eDHL</option>
+                                        <option value="Poslaju">Poslaju</option>
+                                        <option value="GDex">GDex</option>
+                                        <option value="Others">Others</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="entryStatus" class="form-label">Status</label>
+                                    <select class="form-select" id="entryStatus" required>
+                                        <option value="">Select Status</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="In transit">In transit</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Return">Return</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -759,8 +815,8 @@
         let isOnline = navigator.onLine;
         let debugMode = false;
         
-        // Google Sheets Integration
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzhv-AkEfllR9bWqb7AasRfxDCSGl_NnYGUHqePEiLOq4qM6_DAOBSNSbJd7pZECLuz5g/exec";
+        // Google Sheets Integration - UPDATED URL
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwe84Ec0M5f_0S2QwPWwIrNeGYblfk0AfacEGLTQdRsoRRuP1kXnqrpGXGUrLzyvuyX/exec";
         
         // Data Storage
         let users = [
@@ -979,6 +1035,27 @@
                 const editRequestBadge = hasEditRequest ? 
                     '<span class="edit-request-badge ms-2">Edit Requested</span>' : '';
                 
+                // Status badge styling
+                let statusBadge = '';
+                if (entry.status) {
+                    let statusClass = '';
+                    switch(entry.status) {
+                        case 'Pending':
+                            statusClass = 'status-pending';
+                            break;
+                        case 'In transit':
+                            statusClass = 'status-in-transit';
+                            break;
+                        case 'Delivered':
+                            statusClass = 'status-delivered';
+                            break;
+                        case 'Return':
+                            statusClass = 'status-return';
+                            break;
+                    }
+                    statusBadge = `<span class="status-badge ${statusClass}">${entry.status}</span>`;
+                }
+                
                 row.innerHTML = `
                     <td><span class="entry-id">${entry.id}</span></td>
                     <td>${entry.date}</td>
@@ -986,6 +1063,8 @@
                     <td><span class="badge bg-primary">${entry.destination}</span></td>
                     <td><span class="text-muted">${entry.cashbill || 'N/A'}</span></td>
                     <td><span class="text-muted">${entry.consignment || 'N/A'}</span></td>
+                    <td>${entry.courierType || 'N/A'}</td>
+                    <td>${statusBadge || '<span class="text-muted">Not set</span>'}</td>
                     <td>
                         ${entry.photo ? 
                             `<img src="${entry.photo}" class="entry-photo" onclick="viewPhoto('${entry.photo}')">` : 
@@ -1122,6 +1201,8 @@
             document.getElementById('entryPIC').value = currentUser.name;
             document.getElementById('entryCashbill').value = '';
             document.getElementById('entryConsignment').value = '';
+            document.getElementById('entryCourierType').value = '';
+            document.getElementById('entryStatus').value = '';
             document.getElementById('photoPreview').innerHTML = '';
             document.getElementById('saveButtonText').textContent = 'Save Entry';
             debugLog('Opened add entry modal');
@@ -1134,12 +1215,14 @@
             const destination = document.getElementById('entryDestination').value;
             const cashbill = document.getElementById('entryCashbill').value;
             const consignment = document.getElementById('entryConsignment').value;
+            const courierType = document.getElementById('entryCourierType').value;
+            const status = document.getElementById('entryStatus').value;
             const photoFile = document.getElementById('entryPhoto').files[0];
             const remarks = document.getElementById('entryRemarks').value;
             
-            debugLog('Form data:', { date, destination, cashbill, consignment, remarks, hasPhoto: !!photoFile });
+            debugLog('Form data:', { date, destination, cashbill, consignment, courierType, status, remarks, hasPhoto: !!photoFile });
             
-            if (!date || !destination || !cashbill || !consignment) {
+            if (!date || !destination || !cashbill || !consignment || !courierType || !status) {
                 debugLog('Validation failed - missing required fields');
                 alert('Please fill in all required fields');
                 return;
@@ -1152,18 +1235,18 @@
                 reader.onload = function(e) {
                     photoData = e.target.result;
                     debugLog('Photo loaded, size: ' + photoData.length);
-                    saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, photoData);
+                    saveEntryWithPhoto(date, destination, cashbill, consignment, courierType, status, remarks, photoData);
                 };
                 reader.readAsDataURL(photoFile);
             } else {
                 debugLog('No photo file, proceeding without photo');
-                saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, null);
+                saveEntryWithPhoto(date, destination, cashbill, consignment, courierType, status, remarks, null);
             }
         }
         
-        function saveEntryWithPhoto(date, destination, cashbill, consignment, remarks, photoData) {
+        function saveEntryWithPhoto(date, destination, cashbill, consignment, courierType, status, remarks, photoData) {
             try {
-                debugLog('Saving entry with photo:', { date, destination, cashbill, consignment, hasPhoto: !!photoData });
+                debugLog('Saving entry with photo:', { date, destination, cashbill, consignment, courierType, status, hasPhoto: !!photoData });
                 
                 if (currentEntryId) {
                     // Edit existing entry
@@ -1174,6 +1257,8 @@
                         entry.destination = destination;
                         entry.cashbill = cashbill;
                         entry.consignment = consignment;
+                        entry.courierType = courierType;
+                        entry.status = status;
                         if (photoData) entry.photo = photoData;
                         entry.lastModified = new Date().toISOString();
                         
@@ -1212,6 +1297,8 @@
                         destination: destination,
                         cashbill: cashbill,
                         consignment: consignment,
+                        courierType: courierType,
+                        status: status,
                         photo: photoData,
                         committed: false,
                         createdBy: currentUser.id,
@@ -1270,6 +1357,8 @@
             document.getElementById('entryDestination').value = entry.destination;
             document.getElementById('entryCashbill').value = entry.cashbill || '';
             document.getElementById('entryConsignment').value = entry.consignment || '';
+            document.getElementById('entryCourierType').value = entry.courierType || '';
+            document.getElementById('entryStatus').value = entry.status || '';
             document.getElementById('entryRemarks').value = '';
             document.getElementById('saveButtonText').textContent = 'Update Entry';
             
@@ -1690,6 +1779,8 @@
             formData.append('destination', entryData.destination || '');
             formData.append('cashbill', entryData.cashbill || '');
             formData.append('consignment', entryData.consignment || '');
+            formData.append('courierType', entryData.courierType || '');
+            formData.append('status', entryData.status || '');
             formData.append('id', entryData.id || '');
             formData.append('committed', entryData.committed);
             formData.append('createdBy', entryData.createdBy || '');
@@ -1734,6 +1825,8 @@
             formData.append('destination', entryData.destination || '');
             formData.append('cashbill', entryData.cashbill || '');
             formData.append('consignment', entryData.consignment || '');
+            formData.append('courierType', entryData.courierType || '');
+            formData.append('status', entryData.status || '');
             formData.append('id', entryData.id || '');
             formData.append('committed', entryData.committed);
             formData.append('createdBy', entryData.createdBy || '');
@@ -1829,10 +1922,12 @@
                                 destination: row.destination || '',
                                 cashbill: row.cashbill || '',
                                 consignment: row.consignment || '',
+                                courierType: row.courierType || '',
+                                status: row.status || '',
                                 committed: row.committed === 'TRUE' || row.committed === true,
-                                createdBy: row.createdby || '',
-                                createdAt: row.createdat || '',
-                                lastModified: row.lastmodified || ''
+                                createdBy: row.createdBy || '',
+                                createdAt: row.createdAt || '',
+                                lastModified: row.lastModified || ''
                             };
                             
                             logbookEntries.push(newEntry);
