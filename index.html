@@ -519,6 +519,15 @@
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+        }
     </style>
 </head>
 <body>
@@ -1260,6 +1269,11 @@
         }
         
         function renderActionButtons(entry) {
+            debugLog('Rendering action buttons for entry:', entry);
+            debugLog('Current user:', currentUser);
+            debugLog('Is creator:', entry.createdBy === currentUser.id);
+            debugLog('Entry committed:', entry.committed);
+            
             if (showingDeleted) {
                 return currentUser.role === 'admin' ? `
                     <button class="btn btn-sm btn-success me-1" onclick="restoreEntry('${entry.id}')">
@@ -1273,23 +1287,31 @@
             
             let buttons = '';
             const isCreator = entry.createdBy === currentUser.id;
+            const isPIC = entry.pic === currentUser.name;
             
             // Edit button logic
             if (entry.committed) {
                 if (currentUser.role === 'admin') {
+                    debugLog('Showing edit button for admin');
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
-                } else if (isCreator) {
+                } else if (isCreator || isPIC) {
+                    debugLog('Showing edit request button for creator/PIC');
                     buttons += `<button class="btn btn-sm btn-warning me-1" onclick="requestEdit('${entry.id}')">
-                        <i class="fas fa-edit"></i>
+                        <i class="fas fa-edit"></i> Request Edit
                     </button>`;
+                } else {
+                    debugLog('Not showing edit button - not admin, creator, or PIC');
                 }
             } else {
                 if (currentUser.role === 'admin' || isCreator) {
+                    debugLog('Showing edit button for uncommitted entry');
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
+                } else {
+                    debugLog('Not showing edit button for uncommitted entry - not admin or creator');
                 }
             }
             
@@ -1315,6 +1337,7 @@
                 </button>`;
             }
             
+            debugLog('Buttons HTML:', buttons);
             return buttons;
         }
         
@@ -1738,9 +1761,14 @@
         
         // Edit Request Management
         function requestEdit(entryId) {
+            debugLog('Requesting edit for entry:', entryId);
             currentEntryId = entryId;
             document.getElementById('editRequestReason').value = '';
-            new bootstrap.Modal(document.getElementById('editRequestModal')).show();
+            
+            // Ensure the modal is properly initialized
+            const modalElement = document.getElementById('editRequestModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
         }
         
         function submitEditRequest() {
@@ -1766,7 +1794,7 @@
             updateUI();
             bootstrap.Modal.getInstance(document.getElementById('editRequestModal')).hide();
             
-            alert('Edit request submitted. Please contact Admin (Danial Danish - ID: 7434) for approval.');
+            showSuccessMessage('Edit request submitted. Please contact Admin (Danial Danish - ID: 7434) for approval.');
         }
         
         function updateEditRequestBadge() {
@@ -1951,7 +1979,7 @@
             const request = editRequests.find(r => r.id === requestId);
             if (request) {
                 uncommitEntry(request.entryId);
-                alert(`Edit request approved. Entry #${request.entryId} has been uncommitted and can now be edited.`);
+                showSuccessMessage(`Edit request approved. Entry #${request.entryId} has been uncommitted and can now be edited.`);
             }
         }
         
@@ -2327,6 +2355,15 @@
                     
                     sheetData.forEach(row => {
                         if (row.id && !existingEntriesMap[row.id]) {
+                            // Try to find the user by name if createdBy is not available
+                            let createdBy = row.createdBy || '';
+                            if (!createdBy && row.pic) {
+                                const user = users.find(u => u.name === row.pic);
+                                if (user) {
+                                    createdBy = user.id;
+                                }
+                            }
+                            
                             const newEntry = {
                                 id: row.id,
                                 date: row.date || '',
@@ -2337,7 +2374,7 @@
                                 courierType: row.courierType || '',
                                 status: row.status || '',
                                 committed: row.committed === 'TRUE' || row.committed === true,
-                                createdBy: row.createdBy || '',
+                                createdBy: createdBy,
                                 createdAt: row.createdAt || '',
                                 lastModified: row.lastModified || ''
                             };
