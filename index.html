@@ -443,6 +443,20 @@
             background-color: var(--danger);
             color: white;
         }
+        
+        .approval-section {
+            background: rgba(52, 152, 219, 0.05);
+            border: 1px solid var(--info);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .approval-header {
+            color: var(--info);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -809,15 +823,10 @@
     <script>
         // Malaysia Time Helper Functions
         function getMalaysiaTime() {
-            // Create a new Date object
             const now = new Date();
-            
-            // Convert to Malaysia Time (UTC+8)
             const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));
-            
             return malaysiaTime;
         }
-
         function formatMalaysiaDateTime(date) {
             const options = {
                 year: 'numeric',
@@ -831,7 +840,6 @@
             };
             return new Date(date).toLocaleString('en-MY', options);
         }
-
         function formatMalaysiaDate(date) {
             const options = {
                 year: 'numeric',
@@ -850,7 +858,7 @@
         let isOnline = navigator.onLine;
         let debugMode = false;
         
-        // Google Sheets Integration - UPDATED URL
+        // Google Sheets Integration
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwe84Ec0M5f_0S2QwPWwIrNeGYblfk0AfacEGLTQdRsoRRuP1kXnqrpGXGUrLzyvuyX/exec";
         
         // Data Storage
@@ -1054,7 +1062,6 @@
             tbody.innerHTML = '';
             
             const entriesToShow = showingDeleted ? deletedEntries : logbookEntries;
-            // Show all entries to all users (no filtering by creator)
             let filteredEntries = entriesToShow;
             
             document.getElementById('entriesTitle').textContent = showingDeleted ? 
@@ -1070,7 +1077,6 @@
                 const editRequestBadge = hasEditRequest ? 
                     '<span class="edit-request-badge ms-2">Edit Requested</span>' : '';
                 
-                // Status badge styling
                 let statusBadge = '';
                 if (entry.status) {
                     let statusClass = '';
@@ -1142,21 +1148,16 @@
             
             // Edit button logic
             if (entry.committed) {
-                // Only admin can edit committed entries directly
                 if (currentUser.role === 'admin') {
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
                 } else if (isCreator) {
-                    // Non-admin users can request edit for their own committed entries
                     buttons += `<button class="btn btn-sm btn-warning me-1" onclick="requestEdit('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
                 }
             } else {
-                // For uncommitted entries:
-                // - Admin can edit any entry
-                // - Non-admin can only edit their own entries
                 if (currentUser.role === 'admin' || isCreator) {
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
@@ -1165,8 +1166,6 @@
             }
             
             // Delete button
-            // - Admin can delete any entry
-            // - Non-admin can only delete their own uncommitted entries
             if (currentUser.role === 'admin' || 
                 (isCreator && !entry.committed)) {
                 buttons += `<button class="btn btn-sm btn-danger me-1" onclick="deleteEntry('${entry.id}')">
@@ -1176,8 +1175,8 @@
             
             // Commit/Uncommit button
             if (!entry.committed) {
-                // Only the creator of the entry can commit it
-                if (isCreator) {
+                // Allow both creator and admin to commit
+                if (isCreator || currentUser.role === 'admin') {
                     buttons += `<button class="btn btn-sm btn-success" onclick="commitEntry('${entry.id}')">
                         <i class="fas fa-lock"></i> Commit
                     </button>`;
@@ -1196,24 +1195,20 @@
             try {
                 debugLog('Generating next ID...');
                 
-                // Get all existing entries
                 const allEntries = [...logbookEntries, ...deletedEntries];
                 debugLog('Total entries found: ' + allEntries.length);
                 
-                // Filter entries that have the new format (start with "LBVM")
                 const lbvmEntries = allEntries.filter(entry => entry.id && entry.id.startsWith('LBVM'));
                 debugLog('LBVM entries found: ' + lbvmEntries.length);
                 
-                // If no entries with the new format, start at 001
                 if (lbvmEntries.length === 0) {
                     debugLog('No LBVM entries found, starting with LBVM001');
                     return "LBVM001";
                 }
                 
-                // Extract the numeric part from each ID (the last 3 digits)
                 let maxNum = 0;
                 lbvmEntries.forEach(entry => {
-                    const numStr = entry.id.substring(4); // Skip "LBVM"
+                    const numStr = entry.id.substring(4);
                     const num = parseInt(numStr, 10);
                     if (!isNaN(num) && num > maxNum) {
                         maxNum = num;
@@ -1222,7 +1217,6 @@
                 
                 debugLog('Max number found: ' + maxNum);
                 
-                // Increment and format as 3 digits
                 const nextNum = maxNum + 1;
                 const nextNumStr = String(nextNum).padStart(3, '0');
                 const newId = `LBVM${nextNumStr}`;
@@ -1231,7 +1225,6 @@
                 return newId;
             } catch (error) {
                 debugLog('Error generating ID: ' + error.message);
-                // Fallback to timestamp-based ID if there's an error
                 return "LBVM" + Date.now();
             }
         }
@@ -1242,7 +1235,6 @@
             document.getElementById('entryModalTitle').textContent = 'Add New Entry';
             document.getElementById('entryForm').reset();
             
-            // Set current date in Malaysia Time
             const malaysiaDate = getMalaysiaTime();
             document.getElementById('entryDate').value = malaysiaDate.toISOString().split('T')[0];
             
@@ -1308,20 +1300,19 @@
                         entry.courierType = courierType;
                         entry.status = status;
                         if (photoData) entry.photo = photoData;
-                        entry.lastModified = getMalaysiaTime().toISOString(); // Use Malaysia Time
+                        entry.lastModified = getMalaysiaTime().toISOString();
                         
                         if (remarks) {
                             if (!entryRemarks[currentEntryId]) entryRemarks[currentEntryId] = [];
                             entryRemarks[currentEntryId].push({
                                 text: remarks,
                                 author: currentUser.name,
-                                timestamp: getMalaysiaTime().toISOString() // Use Malaysia Time
+                                timestamp: getMalaysiaTime().toISOString()
                             });
                         }
                         
                         logActivity('Edit Entry', `Entry #${currentEntryId} edited by ${currentUser.name}`);
                         
-                        // Update Google Sheets
                         if (isOnline) {
                             updateGoogleSheet(entry);
                         } else {
@@ -1338,7 +1329,7 @@
                     const newId = generateNextId();
                     debugLog('Generated new ID: ' + newId);
                     
-                    const malaysiaTime = getMalaysiaTime(); // Get Malaysia Time
+                    const malaysiaTime = getMalaysiaTime();
                     
                     const newEntry = {
                         id: newId,
@@ -1352,8 +1343,8 @@
                         photo: photoData,
                         committed: false,
                         createdBy: currentUser.id,
-                        createdAt: malaysiaTime.toISOString(), // Use Malaysia Time
-                        lastModified: malaysiaTime.toISOString() // Use Malaysia Time
+                        createdAt: malaysiaTime.toISOString(),
+                        lastModified: malaysiaTime.toISOString()
                     };
                     
                     debugLog('Created new entry:', newEntry);
@@ -1365,13 +1356,12 @@
                         entryRemarks[newEntry.id] = [{
                             text: remarks,
                             author: currentUser.name,
-                            timestamp: malaysiaTime.toISOString() // Use Malaysia Time
+                            timestamp: malaysiaTime.toISOString()
                         }];
                     }
                     
                     logActivity('Add Entry', `New entry created by ${currentUser.name}`);
                     
-                    // Submit to Google Sheets
                     if (isOnline) {
                         debugLog('Submitting to Google Sheets...');
                         submitToGoogleSheet(newEntry);
@@ -1430,7 +1420,6 @@
                 deletedEntries.unshift(entry);
                 logActivity('Delete Entry', `Entry #${entryId} deleted by ${currentUser.name}`);
                 
-                // Update Google Sheets
                 if (isOnline) {
                     deleteFromGoogleSheet(entry);
                 } else {
@@ -1447,10 +1436,14 @@
             if (entry) {
                 entry.committed = true;
                 entry.committedBy = currentUser.id;
-                entry.committedAt = getMalaysiaTime().toISOString(); // Use Malaysia Time
+                entry.committedAt = getMalaysiaTime().toISOString();
+                
+                // Remove uncommit tracking if exists
+                delete entry.uncommittedBy;
+                delete entry.uncommittedAt;
+                
                 logActivity('Commit Entry', `Entry #${entryId} committed by ${currentUser.name}`);
                 
-                // Update Google Sheets
                 if (isOnline) {
                     updateGoogleSheet(entry);
                 } else {
@@ -1459,7 +1452,6 @@
                 
                 saveToLocalStorage();
                 updateUI();
-                
                 showSuccessMessage('Entry committed successfully!');
             }
         }
@@ -1468,6 +1460,8 @@
             const entry = logbookEntries.find(e => e.id === entryId);
             if (entry) {
                 entry.committed = false;
+                entry.uncommittedBy = currentUser.id;
+                entry.uncommittedAt = getMalaysiaTime().toISOString();
                 delete entry.committedBy;
                 delete entry.committedAt;
                 
@@ -1476,13 +1470,12 @@
                     if (req.entryId === entryId) {
                         req.resolved = true;
                         req.resolvedBy = currentUser.id;
-                        req.resolvedAt = getMalaysiaTime().toISOString(); // Use Malaysia Time
+                        req.resolvedAt = getMalaysiaTime().toISOString();
                     }
                 });
                 
                 logActivity('Uncommit Entry', `Entry #${entryId} uncommitted by ${currentUser.name}`);
                 
-                // Update Google Sheets
                 if (isOnline) {
                     updateGoogleSheet(entry);
                 } else {
@@ -1491,8 +1484,34 @@
                 
                 saveToLocalStorage();
                 updateUI();
-                
                 showSuccessMessage('Entry uncommitted successfully!');
+            }
+        }
+        
+        function adminCommitEntry(entryId) {
+            const entry = logbookEntries.find(e => e.id === entryId);
+            if (entry) {
+                entry.committed = true;
+                entry.committedBy = currentUser.id;
+                entry.committedAt = getMalaysiaTime().toISOString();
+                entry.lastCommittedBy = currentUser.id;
+                entry.lastCommittedAt = getMalaysiaTime().toISOString();
+                
+                // Remove uncommit tracking
+                delete entry.uncommittedBy;
+                delete entry.uncommittedAt;
+                
+                logActivity('Admin Commit', `Entry #${entryId} re-committed by admin ${currentUser.name}`);
+                
+                if (isOnline) {
+                    updateGoogleSheet(entry);
+                } else {
+                    showErrorMessage('You are offline. Changes will be synced when you reconnect.');
+                }
+                
+                saveToLocalStorage();
+                updateUI();
+                showSuccessMessage('Entry re-committed successfully by admin!');
             }
         }
         
@@ -1503,7 +1522,6 @@
                 logbookEntries.unshift(entry);
                 logActivity('Restore Entry', `Entry #${entryId} restored by ${currentUser.name}`);
                 
-                // Update Google Sheets
                 if (isOnline) {
                     updateGoogleSheet(entry);
                 } else {
@@ -1524,7 +1542,6 @@
                 delete entryRemarks[entryId];
                 logActivity('Permanent Delete', `Entry #${entryId} permanently deleted by ${currentUser.name}`);
                 
-                // Delete from Google Sheets
                 if (isOnline) {
                     deleteFromGoogleSheet(entry);
                 } else {
@@ -1582,7 +1599,7 @@
             entryRemarks[currentRemarksEntryId].push({
                 text: remarkText,
                 author: currentUser.name,
-                timestamp: getMalaysiaTime().toISOString() // Use Malaysia Time
+                timestamp: getMalaysiaTime().toISOString()
             });
             
             logActivity('Add Remark', `Remark added to entry #${currentRemarksEntryId} by ${currentUser.name}`);
@@ -1611,7 +1628,7 @@
                 requestedBy: currentUser.id,
                 requestedByName: currentUser.name,
                 reason: reason,
-                timestamp: getMalaysiaTime().toISOString(), // Use Malaysia Time
+                timestamp: getMalaysiaTime().toISOString(),
                 resolved: false
             };
             
@@ -1748,6 +1765,39 @@
                 });
             }
             
+            // Show entries awaiting admin re-commit approval
+            const uncommittedEntries = logbookEntries.filter(e => !e.committed && e.uncommittedBy);
+            if (uncommittedEntries.length > 0) {
+                const uncommittedHeader = document.createElement('h6');
+                uncommittedHeader.className = 'text-info mb-3';
+                uncommittedHeader.innerHTML = '<i class="fas fa-clock me-2"></i>Entries Awaiting Re-commit Approval';
+                activityLog.appendChild(uncommittedHeader);
+                
+                uncommittedEntries.forEach(entry => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'activity-item bg-info bg-opacity-10 border border-info';
+                    entryDiv.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>Entry #${entry.id}</strong> is uncommitted and awaiting re-commit
+                                <br><small class="text-muted">Created by: ${entry.pic}</small>
+                                <br><small class="text-muted">Uncommitted by: ${users.find(u => u.id === entry.uncommittedBy)?.name || 'Unknown'}</small>
+                                <br><small class="text-muted">Uncommitted at: ${formatMalaysiaDateTime(entry.uncommittedAt)}</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-success me-1" onclick="adminCommitEntry('${entry.id}')">
+                                    <i class="fas fa-check"></i> Approve Commit
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="viewEntryDetails('${entry.id}')">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    activityLog.appendChild(entryDiv);
+                });
+            }
+            
             // Show recent activity
             const recentLogs = activityLogs.slice(0, 10);
             if (recentLogs.length > 0) {
@@ -1777,6 +1827,75 @@
             }
         }
         
+        function viewEntryDetails(entryId) {
+            const entry = logbookEntries.find(e => e.id === entryId);
+            if (!entry) return;
+            
+            const modalHtml = `
+            <div class="modal fade" id="entryDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Entry Details - #${entry.id}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Date:</strong> ${formatMalaysiaDate(entry.date)}</p>
+                                    <p><strong>PIC:</strong> ${entry.pic}</p>
+                                    <p><strong>Destination:</strong> ${entry.destination}</p>
+                                    <p><strong>Cashbill:</strong> ${entry.cashbill || 'N/A'}</p>
+                                    <p><strong>Consignment:</strong> ${entry.consignment || 'N/A'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Courier Type:</strong> ${entry.courierType || 'N/A'}</p>
+                                    <p><strong>Status:</strong> ${entry.status || 'Not set'}</p>
+                                    <p><strong>Created By:</strong> ${users.find(u => u.id === entry.createdBy)?.name || 'Unknown'}</p>
+                                    <p><strong>Created At:</strong> ${formatMalaysiaDateTime(entry.createdAt)}</p>
+                                    <p><strong>Last Modified:</strong> ${formatMalaysiaDateTime(entry.lastModified)}</p>
+                                </div>
+                            </div>
+                            ${entry.photo ? `
+                            <div class="mt-3">
+                                <p><strong>Photo Proof:</strong></p>
+                                <img src="${entry.photo}" class="img-fluid" style="max-height: 300px;">
+                            </div>
+                            ` : ''}
+                            ${entryRemarks[entry.id] ? `
+                            <div class="mt-3">
+                                <p><strong>Remarks:</strong></p>
+                                <div class="remarks-list">
+                                    ${entryRemarks[entry.id].map(remark => `
+                                        <div class="remark-item">
+                                            <div class="remark-author">${remark.author}</div>
+                                            <div>${remark.text}</div>
+                                            <div class="remark-time">${formatMalaysiaDateTime(remark.timestamp)}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-success" onclick="adminCommitEntry('${entry.id}'); bootstrap.Modal.getInstance(document.getElementById('entryDetailsModal')).hide();">
+                                <i class="fas fa-check"></i> Approve Commit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            
+            const existingModal = document.getElementById('entryDetailsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            new bootstrap.Modal(document.getElementById('entryDetailsModal')).show();
+        }
+        
         // Utility Functions
         function handlePhotoPreview() {
             const file = document.getElementById('entryPhoto').files[0];
@@ -1804,7 +1923,7 @@
                 details: details,
                 user: currentUser.name,
                 userId: currentUser.id,
-                timestamp: getMalaysiaTime().toISOString() // Use Malaysia Time
+                timestamp: getMalaysiaTime().toISOString()
             });
             saveToLocalStorage();
         }
@@ -1952,21 +2071,17 @@
             .then(response => response.json())
             .then(data => {
                 if (data.result === 'success') {
-                    // Process the data from Google Sheets
                     const sheetData = data.data || [];
                     
-                    // Create a map of existing entries by ID
                     const existingEntriesMap = {};
                     logbookEntries.forEach(entry => {
                         existingEntriesMap[entry.id] = entry;
                     });
                     
-                    // Process each row from Google Sheets
                     sheetData.forEach(row => {
                         if (row.id && !existingEntriesMap[row.id]) {
-                            // This entry exists in Google Sheets but not in our local storage
                             const newEntry = {
-                                id: row.id, // Keep the ID as it is from Google Sheets
+                                id: row.id,
                                 date: row.date || '',
                                 pic: row.pic || '',
                                 destination: row.destination || '',
@@ -1984,7 +2099,6 @@
                         }
                     });
                     
-                    // Sort entries by date (newest first)
                     logbookEntries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                     
                     saveToLocalStorage();
@@ -1996,7 +2110,6 @@
                     console.error('Error syncing with Google Sheets:', data.error);
                     hideSyncIndicator();
                     showErrorMessage('Error syncing with Google Sheets: ' + data.error);
-                    // Try to load from localStorage as fallback
                     loadFromLocalStorage();
                 }
             })
@@ -2004,7 +2117,6 @@
                 console.error('Error syncing with Google Sheets:', error);
                 hideSyncIndicator();
                 showErrorMessage('Network error while syncing with Google Sheets');
-                // Try to load from localStorage as fallback
                 loadFromLocalStorage();
             });
         }
@@ -2038,7 +2150,6 @@
             `;
             document.body.appendChild(alertDiv);
             
-            // Auto dismiss after 3 seconds
             setTimeout(() => {
                 alertDiv.remove();
             }, 3000);
@@ -2054,7 +2165,6 @@
             `;
             document.body.appendChild(alertDiv);
             
-            // Auto dismiss after 3 seconds
             setTimeout(() => {
                 alertDiv.remove();
             }, 3000);
