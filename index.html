@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
+        /* Existing styles remain unchanged */
         :root {
             --primary: #2c3e50;
             --secondary: #95a5a6;
@@ -552,6 +553,23 @@
             50% { opacity: 0.7; }
             100% { opacity: 1; }
         }
+        
+        .session-timer {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(44, 62, 80, 0.8);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .session-timer.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -571,10 +589,6 @@
                 <div class="mb-3">
                     <label for="loginPassword" class="form-label">Password</label>
                     <input type="password" class="form-control" id="loginPassword" required>
-                </div>
-                <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="rememberMe">
-                    <label class="form-check-label" for="rememberMe">Remember Me</label>
                 </div>
                 <div class="d-grid">
                     <button type="submit" class="btn btn-primary btn-login">
@@ -642,6 +656,11 @@
         <!-- Real-time Sync Indicator -->
         <div id="realTimeIndicator" class="real-time-indicator">
             <i class="fas fa-sync-alt me-1"></i>Syncing...
+        </div>
+        
+        <!-- Session Timer -->
+        <div id="sessionTimer" class="session-timer">
+            <i class="fas fa-clock me-1"></i>Session expires in: <span id="sessionTimeLeft">5:00</span>
         </div>
         
         <!-- Logbook Page -->
@@ -1015,6 +1034,8 @@
         let isOnline = navigator.onLine;
         let debugMode = false;
         let syncInterval = null;
+        let sessionTimeout = null;
+        let sessionTimeLeft = 300; // 5 minutes in seconds
         
         // Google Sheets Integration
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwe84Ec0M5f_0S2QwPWwIrNeGYblfk0AfacEGLTQdRsoRRuP1kXnqrpGXGUrLzyvuyX/exec";
@@ -1080,7 +1101,57 @@
             
             // Set up real-time sync interval
             setupRealTimeSync();
+            
+            // Set up session timeout
+            setupSessionTimeout();
         });
+        
+        // Session timeout management
+        function setupSessionTimeout() {
+            // Update session timer display
+            updateSessionTimerDisplay();
+            
+            // Set up interval to update session timer every second
+            setInterval(() => {
+                if (currentUser) {
+                    sessionTimeLeft--;
+                    updateSessionTimerDisplay();
+                    
+                    if (sessionTimeLeft <= 0) {
+                        logout();
+                    }
+                }
+            }, 1000);
+            
+            // Reset session timeout on user activity
+            document.addEventListener('mousemove', resetSessionTimeout);
+            document.addEventListener('keypress', resetSessionTimeout);
+            document.addEventListener('click', resetSessionTimeout);
+            document.addEventListener('scroll', resetSessionTimeout);
+        }
+        
+        function updateSessionTimerDisplay() {
+            const minutes = Math.floor(sessionTimeLeft / 60);
+            const seconds = sessionTimeLeft % 60;
+            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            
+            const sessionTimer = document.getElementById('sessionTimer');
+            const sessionTimeLeftElement = document.getElementById('sessionTimeLeft');
+            
+            if (currentUser) {
+                sessionTimer.classList.add('show');
+                sessionTimeLeftElement.textContent = timeString;
+            } else {
+                sessionTimer.classList.remove('show');
+            }
+        }
+        
+        function resetSessionTimeout() {
+            if (currentUser) {
+                sessionTimeLeft = 300; // Reset to 5 minutes
+                debugLog('Session timeout reset');
+            }
+        }
         
         // Setup real-time synchronization
         function setupRealTimeSync() {
@@ -1164,6 +1235,30 @@
                         });
                     }
                     
+                    // Check for updated entries (especially uncommitted ones)
+                    const updatedEntries = serverEntries.filter(serverEntry => {
+                        const localEntry = logbookEntries.find(e => e.id === serverEntry.id);
+                        return localEntry && localEntry.committed !== serverEntry.committed;
+                    });
+                    
+                    if (updatedEntries.length > 0) {
+                        debugLog('Found ' + updatedEntries.length + ' updated entries');
+                        updatedEntries.forEach(serverEntry => {
+                            const localEntry = logbookEntries.find(e => e.id === serverEntry.id);
+                            if (localEntry) {
+                                localEntry.committed = serverEntry.committed;
+                                if (serverEntry.committed) {
+                                    localEntry.committedBy = serverEntry.committedBy;
+                                    localEntry.committedAt = serverEntry.committedAt;
+                                } else {
+                                    delete localEntry.committedBy;
+                                    delete localEntry.committedAt;
+                                }
+                            }
+                        });
+                        updateUI();
+                    }
+                    
                     hideRealTimeIndicator();
                     saveToLocalStorage();
                 } else {
@@ -1186,9 +1281,8 @@
         // Login Management
         function checkLoginStatus() {
             const savedUser = localStorage.getItem('vmCourierUser');
-            const rememberMe = localStorage.getItem('vmCourierRemember');
             
-            if (savedUser && rememberMe === 'true') {
+            if (savedUser) {
                 const userData = JSON.parse(savedUser);
                 const user = users.find(u => u.id === userData.id);
                 if (user) {
@@ -1204,17 +1298,14 @@
             e.preventDefault();
             const id = document.getElementById('loginId').value;
             const password = document.getElementById('loginPassword').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
             
             debugLog('Login attempt with ID: ' + id);
             
             const user = users.find(u => u.id === id && u.password === password);
             
             if (user) {
-                if (rememberMe) {
-                    localStorage.setItem('vmCourierUser', JSON.stringify({id: user.id}));
-                    localStorage.setItem('vmCourierRemember', 'true');
-                }
+                // Always save user to localStorage
+                localStorage.setItem('vmCourierUser', JSON.stringify({id: user.id}));
                 loginUser(user);
             } else {
                 showLoginError('Invalid ID or password');
@@ -1225,6 +1316,9 @@
             currentUser = user;
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
+            
+            // Reset session timeout
+            resetSessionTimeout();
             
             // Update UI
             document.getElementById('currentUserName').textContent = user.name;
@@ -1248,8 +1342,10 @@
         }
         
         function logout() {
-            logActivity('Logout', `${currentUser.name} logged out`);
-            debugLog('User logged out: ' + currentUser.name);
+            if (currentUser) {
+                logActivity('Logout', `${currentUser.name} logged out`);
+                debugLog('User logged out: ' + currentUser.name);
+            }
             
             // Clear sync interval
             if (syncInterval) {
@@ -1259,7 +1355,6 @@
             
             currentUser = null;
             localStorage.removeItem('vmCourierUser');
-            localStorage.removeItem('vmCourierRemember');
             showLoginPage();
         }
         
@@ -2508,6 +2603,12 @@
             formData.append('lastModified', entryData.lastModified || '');
             formData.append('action', 'update');
             
+            // Add uncommit tracking if exists
+            if (entryData.uncommittedBy) {
+                formData.append('uncommittedBy', entryData.uncommittedBy);
+                formData.append('uncommittedAt', entryData.uncommittedAt);
+            }
+            
             fetch(GOOGLE_SHEETS_URL, {
                 method: 'POST',
                 body: formData
@@ -2610,6 +2711,12 @@
                                 createdAt: row.createdAt || '',
                                 lastModified: row.lastModified || ''
                             };
+                            
+                            // Add uncommit tracking if exists
+                            if (row.uncommittedBy) {
+                                newEntry.uncommittedBy = row.uncommittedBy;
+                                newEntry.uncommittedAt = row.uncommittedAt;
+                            }
                             
                             logbookEntries.push(newEntry);
                         }
