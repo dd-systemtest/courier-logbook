@@ -1013,6 +1013,22 @@
         .system-remark .remark-author {
             color: #2196f3;
         }
+        
+        /* Login Logo Styles */
+        .login-logo {
+            max-height: 80px;
+            width: auto;
+            background: transparent;
+            border: none;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            transition: all 0.3s ease;
+            animation: fadeInDown 0.8s ease-out 0.2s both;
+        }
+        
+        .login-logo:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+        }
     </style>
 </head>
 <body>
@@ -1020,7 +1036,9 @@
     <div id="loginPage" class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <i class="fas fa-clipboard-list fa-3x text-primary mb-3"></i>
+                <img src="https://raw.githubusercontent.com/dd-systemtest/courier-logbook/refs/heads/main/IMG_6714.webp" 
+                     alt="VM Courier Logbook Logo" 
+                     class="login-logo mb-3">
                 <h2>VM Courier Logbook</h2>
                 <p>Village Mall Portal</p>
             </div>
