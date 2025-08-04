@@ -1014,9 +1014,9 @@
             color: #2196f3;
         }
         
-        /* Login Logo Styles */
+        /* Login Logo Styles - Made smaller */
         .login-logo {
-            max-height: 80px;
+            max-height: 60px; /* Reduced from 80px */
             width: auto;
             background: transparent;
             border: none;
@@ -1028,6 +1028,165 @@
         .login-logo:hover {
             transform: scale(1.05);
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+        }
+        
+        /* Search Functionality Styles */
+        .search-container {
+            background: var(--background-primary);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px var(--shadow-light);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--shadow-medium);
+        }
+        
+        .search-input-group {
+            position: relative;
+        }
+        
+        .search-input {
+            border-radius: 12px 0 0 12px;
+            border: 2px solid var(--border-light);
+            border-right: none;
+            padding: 10px 18px 10px 50px; /* Reduced vertical padding */
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(26,26,26,0.15);
+            transform: translateY(-2px);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            z-index: 10;
+        }
+        
+        .search-button {
+            border-radius: 0 12px 12px 0;
+            border: 2px solid var(--primary);
+            background: var(--primary);
+            color: white;
+            padding: 10px 18px; /* Reduced padding */
+            font-weight: 500;
+            font-size: 0.9rem; /* Smaller font */
+            transition: all 0.3s ease;
+        }
+        
+        .search-button:hover {
+            background: var(--soft-black);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-medium);
+        }
+        
+        .clear-button {
+            border-radius: 12px;
+            border: 2px solid var(--border-light);
+            background: var(--background-primary);
+            color: var(--text-secondary);
+            padding: 10px 18px; /* Reduced padding */
+            font-weight: 500;
+            font-size: 0.9rem; /* Smaller font */
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+        
+        .clear-button:hover {
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-medium);
+        }
+        
+        .search-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .search-filter-tag {
+            background: var(--background-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-filter-tag:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .search-filter-tag.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .search-results-info {
+            background: var(--background-secondary);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .search-results-count {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .search-query {
+            color: var(--primary);
+            font-family: monospace;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+        
+        .no-results i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        mark {
+            background-color: #fff3cd;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        
+        .search-highlight {
+            animation: highlightPulse 1s ease-in-out;
+        }
+        
+        @keyframes highlightPulse {
+            0% { background-color: #fff3cd; }
+            50% { background-color: #ffeaa7; }
+            100% { background-color: #fff3cd; }
         }
     </style>
 </head>
@@ -1174,17 +1333,57 @@
                         </div>
                     </div>
                 </div>
-                <!-- Add Entry Button -->
-                <div class="row mb-3">
-                    <div class="col">
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#entryModal" onclick="openAddEntryModal()">
-                            <i class="fas fa-plus me-2"></i>Add New Entry
-                        </button>
-                        <button id="viewDeletedBtn" class="btn btn-outline-secondary ms-2" onclick="toggleDeletedEntries()" style="display: none;">
-                            <i class="fas fa-trash me-2"></i>View Deleted Entries
-                        </button>
+                
+                <!-- Search Section -->
+                <div class="search-container">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="search-input-group">
+                                    <i class="fas fa-search search-icon"></i>
+                                    <input type="text" class="form-control search-input" id="searchInput" 
+                                           placeholder="Search by ID, Date, PIC, Destination, Cashbill, Consignment, Courier Type, or Status...">
+                                    <button class="btn search-button" onclick="performSearch()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn clear-button" onclick="clearSearch()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button id="viewDeletedBtn" class="btn btn-outline-secondary ms-2" onclick="toggleDeletedEntries()" style="display: none;">
+                                    <i class="fas fa-trash me-1"></i>Deleted
+                                </button>
+                                <button class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#entryModal" onclick="openAddEntryModal()">
+                                    <i class="fas fa-plus me-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                        <div class="search-filters" id="searchFilters" style="display: none;">
+                            <div class="search-filter-tag">
+                                <i class="fas fa-filter"></i> Active Filters
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Search is case-insensitive and matches partial text in any field
+                            </small>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Search Results Info -->
+                <div id="searchResultsInfo" class="search-results-info" style="display: none;">
+                    <div class="search-results-count">
+                        Showing <span id="resultsCount">0</span> of <span id="totalCount">0</span> entries
+                    </div>
+                    <div>
+                        Search for: <span class="search-query" id="searchQueryDisplay"></span>
+                    </div>
+                </div>
+                
                 <!-- Logbook Entries -->
                 <div class="card">
                     <div class="card-header">
@@ -1534,6 +1733,10 @@
         let sessionTimeout = null;
         let sessionTimeLeft = 300; // 5 minutes in seconds
         
+        // Search state
+        let searchQuery = '';
+        let filteredEntries = [];
+        
         // Google Sheets Integration
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwe84Ec0M5f_0S2QwPWwIrNeGYblfk0AfacEGLTQdRsoRRuP1kXnqrpGXGUrLzyvuyX/exec";
         
@@ -1773,6 +1976,25 @@
         function setupEventListeners() {
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
             document.getElementById('entryPhoto').addEventListener('change', handlePhotoPreview);
+            
+            // Search functionality
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        performSearch();
+                    }, 300); // Debounce search to avoid excessive filtering
+                });
+                
+                // Add Enter key support
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        performSearch();
+                    }
+                });
+            }
         }
         
         // Login Management
@@ -1905,36 +2127,118 @@
             }
         }
         
-        // Logbook Management
-        function loadLogbookPage() {
-            updateStats();
-            renderLogbookEntries();
-            updateEditRequestBadge();
+        // Search Functions
+        function performSearch() {
+            searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+            filterAndRenderEntries();
         }
         
-        function updateStats() {
-            const total = logbookEntries.length;
-            const committed = logbookEntries.filter(e => e.committed).length;
-            const myEntries = logbookEntries.filter(e => e.createdBy === currentUser.id).length;
-            const requests = editRequests.filter(r => !r.resolved).length;
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchQuery = '';
+            filterAndRenderEntries();
+        }
+        
+        function filterEntries() {
+            if (!searchQuery) {
+                return showingDeleted ? deletedEntries : logbookEntries;
+            }
             
-            document.getElementById('totalEntries').textContent = total;
-            document.getElementById('committedEntries').textContent = committed;
-            document.getElementById('myEntries').textContent = myEntries;
-            document.getElementById('pendingRequests').textContent = requests;
+            const entries = showingDeleted ? deletedEntries : logbookEntries;
+            
+            return entries.filter(entry => {
+                // Search in ID
+                if (entry.id && entry.id.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                // Search in Date (formatted)
+                const formattedDate = formatMalaysiaDate(entry.date);
+                if (formattedDate.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                // Search in PIC
+                if (entry.pic && entry.pic.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                // Search in Destination
+                if (entry.destination && entry.destination.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                // Search in Cashbill
+                if (entry.cashbill && entry.cashbill.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                // Search in Consignment
+                if (entry.consignment && entry.consignment.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                // Search in Courier Type
+                if (entry.courierType && entry.courierType.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                // Search in Status
+                if (entry.status && entry.status.toLowerCase().includes(searchQuery)) {
+                    return true;
+                }
+                
+                return false;
+            });
         }
         
-        function renderLogbookEntries() {
+        function filterAndRenderEntries() {
+            filteredEntries = filterEntries();
+            renderFilteredEntries();
+        }
+        
+        function renderFilteredEntries() {
             const tbody = document.getElementById('entriesTableBody');
             tbody.innerHTML = '';
             
-            const entriesToShow = showingDeleted ? deletedEntries : logbookEntries;
-            let filteredEntries = entriesToShow;
+            let entriesToRender = filteredEntries;
+            const totalCount = showingDeleted ? deletedEntries.length : logbookEntries.length;
             
-            document.getElementById('entriesTitle').textContent = showingDeleted ? 
-                'Deleted Entries' : 'All Entries';
+            // Update search results info
+            const searchResultsInfo = document.getElementById('searchResultsInfo');
+            if (searchQuery) {
+                searchResultsInfo.style.display = 'flex';
+                document.getElementById('resultsCount').textContent = entriesToRender.length;
+                document.getElementById('totalCount').textContent = totalCount;
+                document.getElementById('searchQueryDisplay').textContent = searchQuery;
+            } else {
+                searchResultsInfo.style.display = 'none';
+            }
             
-            filteredEntries.forEach(entry => {
+            // Update the title
+            const titleElement = document.getElementById('entriesTitle');
+            if (searchQuery) {
+                titleElement.innerHTML = `Search Results (${entriesToRender.length} of ${totalCount} entries)`;
+            } else {
+                titleElement.textContent = showingDeleted ? 'Deleted Entries' : 'All Entries';
+            }
+            
+            if (entriesToRender.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="text-center py-4">
+                            <div class="no-results">
+                                <i class="fas fa-search"></i>
+                                <p class="mb-0">No entries found</p>
+                                ${searchQuery ? '<small class="text-muted">Try adjusting your search criteria</small>' : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            entriesToRender.forEach(entry => {
                 const row = document.createElement('tr');
                 if (entry.committed) {
                     row.classList.add('committed-entry');
@@ -1964,14 +2268,23 @@
                     statusBadge = `<span class="status-badge ${statusClass}">${entry.status}</span>`;
                 }
                 
+                // Highlight search matches
+                function highlightMatch(text) {
+                    if (!searchQuery || !text) return text || '';
+                    const regex = new RegExp(`(${searchQuery})`, 'gi');
+                    return text.toString().replace(regex, '<mark>$1</mark>');
+                }
+                
+                const formattedDate = formatMalaysiaDate(entry.date);
+                
                 row.innerHTML = `
-                    <td><span class="entry-id">${entry.id}</span></td>
-                    <td>${formatMalaysiaDate(entry.date)}</td>
-                    <td>${entry.pic}${editRequestBadge}</td>
-                    <td><span class="badge bg-primary">${entry.destination}</span></td>
-                    <td><span class="text-muted">${entry.cashbill || 'N/A'}</span></td>
-                    <td><span class="text-muted">${entry.consignment || 'N/A'}</span></td>
-                    <td>${entry.courierType || 'N/A'}</td>
+                    <td><span class="entry-id">${highlightMatch(entry.id)}</span></td>
+                    <td>${highlightMatch(formattedDate)}</td>
+                    <td>${highlightMatch(entry.pic)}${editRequestBadge}</td>
+                    <td><span class="badge bg-primary">${highlightMatch(entry.destination)}</span></td>
+                    <td><span class="text-muted">${highlightMatch(entry.cashbill || 'N/A')}</span></td>
+                    <td><span class="text-muted">${highlightMatch(entry.consignment || 'N/A')}</span></td>
+                    <td>${highlightMatch(entry.courierType || 'N/A')}</td>
                     <td>${statusBadge || '<span class="text-muted">Not set</span>'}</td>
                     <td>
                         ${entry.photo ? 
@@ -1996,6 +2309,25 @@
                 
                 tbody.appendChild(row);
             });
+        }
+        
+        // Logbook Management
+        function loadLogbookPage() {
+            updateStats();
+            filterAndRenderEntries();
+            updateEditRequestBadge();
+        }
+        
+        function updateStats() {
+            const total = logbookEntries.length;
+            const committed = logbookEntries.filter(e => e.committed).length;
+            const myEntries = logbookEntries.filter(e => e.createdBy === currentUser.id).length;
+            const requests = editRequests.filter(r => !r.resolved).length;
+            
+            document.getElementById('totalEntries').textContent = total;
+            document.getElementById('committedEntries').textContent = committed;
+            document.getElementById('myEntries').textContent = myEntries;
+            document.getElementById('pendingRequests').textContent = requests;
         }
         
         function renderActionButtons(entry) {
@@ -2508,9 +2840,11 @@
             showingDeleted = !showingDeleted;
             const btn = document.getElementById('viewDeletedBtn');
             btn.innerHTML = showingDeleted ? 
-                '<i class="fas fa-list me-2"></i>View Active Entries' : 
-                '<i class="fas fa-trash me-2"></i>View Deleted Entries';
-            renderLogbookEntries();
+                '<i class="fas fa-list me-1"></i>Active' : 
+                '<i class="fas fa-trash me-1"></i>Deleted';
+            
+            // Clear search when switching between active and deleted entries
+            clearSearch();
         }
         
         // Admin Contact Modal
@@ -2572,7 +2906,7 @@
             logActivity('Add Remark', `Remark added to entry #${currentRemarksEntryId} by ${currentUser.name}`);
             saveToLocalStorage();
             viewRemarks(currentRemarksEntryId);
-            renderLogbookEntries();
+            filterAndRenderEntries();
         }
         
         // Edit Request Management with Enhanced Sync
@@ -2819,7 +3153,7 @@
             const recentLogs = activityLogs.slice(0, 10);
             if (recentLogs.length > 0) {
                 const logsHeader = document.createElement('h6');
-                logsHeader.className = 'text-primary mb-3 mt-4';
+                logsHeader.className = 'text-primary mb-3';
                 logsHeader.innerHTML = '<i class="fas fa-history me-2"></i>Recent Activity';
                 activityLog.appendChild(logsHeader);
                 
