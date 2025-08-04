@@ -570,6 +570,59 @@
         .session-timer.show {
             display: block;
         }
+        
+        .admin-contact-btn {
+            background: var(--secondary);
+            color: white;
+            cursor: not-allowed;
+        }
+        
+        .admin-contact-btn:hover {
+            background: var(--secondary);
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .uncommitted-indicator {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--warning);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .permission-info {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            margin-top: 0.25rem;
+        }
+        
+        .system-remark {
+            background-color: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        
+        .system-remark .remark-author {
+            color: #2196f3;
+        }
     </style>
 </head>
 <body>
@@ -984,6 +1037,31 @@
         </div>
     </div>
     
+    <!-- Admin Contact Modal -->
+    <div class="modal fade" id="adminContactModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Admin Contact Required</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>This entry is committed and locked.</strong><br>
+                        To edit this entry, please contact the administrator:<br><br>
+                        <strong>Danial Danish</strong><br>
+                        ID: 7434<br>
+                        <i class="fas fa-phone me-2"></i> Contact for uncommit permission
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Sync Indicator -->
     <div id="syncIndicator" class="sync-indicator">
         <div class="loading-spinner me-2"></div>Syncing with Google Sheets...
@@ -1043,8 +1121,8 @@
         // Data Storage
         let users = [
             { id: '7434', name: 'Danial Danish', role: 'admin', password: 'Danial05', canCommit: true },
-            { id: '4545', name: 'Ain Ismail', role: 'TL', password: 'Ain123', canCommit: false },
-            { id: '5546', name: 'Cindamani Anam', role: 'RSE', password: 'Ann123', canCommit: false },
+            { id: '4545', name: 'Ain Ismail', role: 'TL', password: 'Ain123', canCommit: true },
+            { id: '5546', name: 'Cindamani Anam', role: 'RSE', password: 'Ann123', canCommit: true },
             { id: '7701', name: 'Syarifuddin Mat Razali', role: 'RSA', password: 'Din123', canCommit: false },
             { id: '7407', name: 'Nur Sabrina', role: 'RSA', password: 'Sab123', canCommit: false },
             { id: '7940', name: 'Eisya Nasir', role: 'RSA', password: 'Eisya123', canCommit: false },
@@ -1491,7 +1569,7 @@
                     <td>
                         ${entry.committed ? 
                             '<span class="badge bg-success"><i class="fas fa-lock"></i> Committed</span>' : 
-                            '<span class="badge bg-warning text-dark">Draft</span>'
+                            '<span class="badge bg-warning text-dark"><i class="fas fa-unlock"></i> Draft</span>'
                         }
                     </td>
                     <td>${renderActionButtons(entry)}</td>
@@ -1504,8 +1582,9 @@
         function renderActionButtons(entry) {
             debugLog('Rendering action buttons for entry:', entry);
             debugLog('Current user:', currentUser);
-            debugLog('Is creator:', entry.createdBy === currentUser.id);
             debugLog('Entry committed:', entry.committed);
+            debugLog('Entry PIC:', entry.pic);
+            debugLog('Current user name:', currentUser.name);
             
             if (showingDeleted) {
                 return currentUser.role === 'admin' ? `
@@ -1524,27 +1603,27 @@
             
             // Edit button logic
             if (entry.committed) {
+                // Committed entries - only admin can edit
                 if (currentUser.role === 'admin') {
-                    debugLog('Showing edit button for admin');
+                    debugLog('Showing edit button for admin on committed entry');
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
-                } else if (isCreator || isPIC) {
-                    debugLog('Showing edit request button for creator/PIC');
-                    buttons += `<button class="btn btn-sm btn-warning me-1" onclick="requestEdit('${entry.id}')">
-                        <i class="fas fa-edit"></i> Request Edit
-                    </button>`;
                 } else {
-                    debugLog('Not showing edit button - not admin, creator, or PIC');
+                    debugLog('Showing admin contact button for non-admin on committed entry');
+                    buttons += `<button class="btn btn-sm admin-contact-btn me-1" onclick="showAdminContact()">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>`;
                 }
             } else {
-                if (currentUser.role === 'admin' || isCreator) {
-                    debugLog('Showing edit button for uncommitted entry');
+                // Uncommitted entries - creator, PIC, or admin can edit
+                if (currentUser.role === 'admin' || isCreator || isPIC) {
+                    debugLog('Showing edit button for uncommitted entry - user has permission');
                     buttons += `<button class="btn btn-sm btn-primary me-1" onclick="editEntry('${entry.id}')">
                         <i class="fas fa-edit"></i>
                     </button>`;
                 } else {
-                    debugLog('Not showing edit button for uncommitted entry - not admin or creator');
+                    debugLog('Not showing edit button for uncommitted entry - user does not have permission');
                 }
             }
             
@@ -1556,15 +1635,20 @@
                 </button>`;
             }
             
-            // Commit/Uncommit button
+            // Commit/Uncommit button - UPDATED LOGIC
             if (!entry.committed) {
-                // Allow both creator and admin to commit
-                if (isCreator || currentUser.role === 'admin') {
+                // Allow commit if:
+                // 1. User is the creator of the entry, OR
+                // 2. User is admin, OR
+                // 3. User has canCommit permission AND is NOT the creator
+                if (isCreator || currentUser.role === 'admin' || 
+                    (currentUser.canCommit && !isCreator)) {
                     buttons += `<button class="btn btn-sm btn-success" onclick="commitEntry('${entry.id}')">
                         <i class="fas fa-lock"></i> Commit
                     </button>`;
                 }
             } else if (currentUser.role === 'admin') {
+                // Only admin can uncommit
                 buttons += `<button class="btn btn-sm btn-secondary" onclick="uncommitEntry('${entry.id}')">
                     <i class="fas fa-unlock"></i>
                 </button>`;
@@ -1817,30 +1901,74 @@
         
         function commitEntry(entryId) {
             const entry = logbookEntries.find(e => e.id === entryId);
-            if (entry) {
-                entry.committed = true;
-                entry.committedBy = currentUser.id;
-                entry.committedAt = getMalaysiaTime().toISOString();
-                
-                // Remove uncommit tracking if exists
-                delete entry.uncommittedBy;
-                delete entry.uncommittedAt;
-                
-                logActivity('Commit Entry', `Entry #${entryId} committed by ${currentUser.name}`);
-                
-                if (isOnline) {
-                    updateGoogleSheet(entry);
-                } else {
-                    showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
+            if (!entry) return;
+            
+            // Allow commit if:
+            // 1. User is the creator of the entry, OR
+            // 2. User is admin, OR
+            // 3. User has canCommit permission AND is NOT the creator
+            const isCreator = entry.createdBy === currentUser.id;
+            
+            if (!isCreator && currentUser.role !== 'admin' && !currentUser.canCommit) {
+                showErrorMessage('You do not have permission to commit this entry.');
+                return;
+            }
+            
+            // Validate required fields before committing
+            if (!entry.date || !entry.destination || !entry.cashbill || !entry.consignment || !entry.courierType || !entry.status) {
+                showErrorMessage('Please fill in all required fields before committing.');
+                return;
+            }
+            
+            entry.committed = true;
+            entry.committedBy = currentUser.id;
+            entry.committedAt = getMalaysiaTime().toISOString();
+            
+            // Remove uncommit tracking if exists
+            delete entry.uncommittedBy;
+            delete entry.uncommittedAt;
+            
+            // Add system remark if this is a re-commit after uncommit
+            if (entry.lastCommittedBy) {
+                if (!entryRemarks[entryId]) {
+                    entryRemarks[entryId] = [];
                 }
-                
-                saveToLocalStorage();
-                updateUI();
+                entryRemarks[entryId].push({
+                    text: `Entry re-committed by ${currentUser.name}.`,
+                    author: 'System',
+                    timestamp: getMalaysiaTime().toISOString(),
+                    isSystem: true
+                });
+            }
+            
+            entry.lastCommittedBy = currentUser.id;
+            entry.lastCommittedAt = getMalaysiaTime().toISOString();
+            
+            logActivity('Commit Entry', `Entry #${entryId} committed by ${currentUser.name}`);
+            
+            if (isOnline) {
+                updateGoogleSheet(entry);
+            } else {
+                showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
+            }
+            
+            saveToLocalStorage();
+            updateUI();
+            
+            if (entry.lastCommittedBy && entry.lastCommittedBy !== currentUser.id) {
+                showSuccessMessage('Entry re-committed successfully!');
+            } else {
                 showSuccessMessage('Entry committed successfully!');
             }
         }
         
         function uncommitEntry(entryId) {
+            // Only admin can uncommit entries
+            if (currentUser.role !== 'admin') {
+                showErrorMessage('Only administrators can uncommit entries. Please contact Danial Danish (ID: 7434).');
+                return;
+            }
+            
             const entry = logbookEntries.find(e => e.id === entryId);
             if (entry) {
                 entry.committed = false;
@@ -1848,6 +1976,21 @@
                 entry.uncommittedAt = getMalaysiaTime().toISOString();
                 delete entry.committedBy;
                 delete entry.committedAt;
+                
+                // Notify the creator that their entry has been uncommitted
+                const creator = users.find(u => u.id === entry.createdBy);
+                if (creator && creator.id !== currentUser.id) {
+                    // Add a system remark to notify the creator
+                    if (!entryRemarks[entryId]) {
+                        entryRemarks[entryId] = [];
+                    }
+                    entryRemarks[entryId].push({
+                        text: `Admin has uncommitted this entry. You can now edit and re-commit it.`,
+                        author: 'System',
+                        timestamp: getMalaysiaTime().toISOString(),
+                        isSystem: true
+                    });
+                }
                 
                 // Resolve any edit requests for this entry
                 editRequests.forEach(req => {
@@ -1858,17 +2001,22 @@
                     }
                 });
                 
-                logActivity('Uncommit Entry', `Entry #${entryId} uncommitted by ${currentUser.name}`);
+                logActivity('Uncommit Entry', `Entry #${entryId} uncommitted by admin ${currentUser.name}`);
                 
+                // Force immediate sync to ensure all devices see the change
                 if (isOnline) {
                     updateGoogleSheet(entry);
+                    // Force a refresh of data from Google Sheets
+                    setTimeout(() => {
+                        loadDataFromGoogleSheets();
+                    }, 1000);
                 } else {
                     showErrorMessage('You are offline. Changes will be saved locally and synced when you reconnect.');
                 }
                 
                 saveToLocalStorage();
                 updateUI();
-                showSuccessMessage('Entry uncommitted successfully!');
+                showSuccessMessage('Entry uncommitted successfully! The creator can now edit and re-commit this entry.');
             }
         }
         
@@ -1946,6 +2094,11 @@
             renderLogbookEntries();
         }
         
+        // Admin Contact Modal
+        function showAdminContact() {
+            new bootstrap.Modal(document.getElementById('adminContactModal')).show();
+        }
+        
         // Remarks Management
         function viewRemarks(entryId) {
             currentRemarksEntryId = entryId;
@@ -1959,11 +2112,22 @@
                 remarks.forEach(remark => {
                     const remarkDiv = document.createElement('div');
                     remarkDiv.className = 'remark-item';
-                    remarkDiv.innerHTML = `
-                        <div class="remark-author">${remark.author}</div>
-                        <div>${remark.text}</div>
-                        <div class="remark-time">${formatMalaysiaDateTime(remark.timestamp)}</div>
-                    `;
+                    if (remark.isSystem) {
+                        remarkDiv.classList.add('system-remark');
+                        remarkDiv.innerHTML = `
+                            <div class="remark-author">
+                                <i class="fas fa-info-circle me-1"></i>${remark.author}
+                            </div>
+                            <div>${remark.text}</div>
+                            <div class="remark-time">${formatMalaysiaDateTime(remark.timestamp)}</div>
+                        `;
+                    } else {
+                        remarkDiv.innerHTML = `
+                            <div class="remark-author">${remark.author}</div>
+                            <div>${remark.text}</div>
+                            <div class="remark-time">${formatMalaysiaDateTime(remark.timestamp)}</div>
+                        `;
+                    }
                     remarksList.appendChild(remarkDiv);
                 });
             }
@@ -2112,7 +2276,8 @@
                                                onchange="toggleCommitPermission('${user.id}')"
                                                ${user.role === 'admin' ? 'disabled' : ''}>
                                         <label class="form-check-label" for="commit${user.id}">
-                                            Can Commit
+                                            Can Commit Others' Entries
+                                            <div class="permission-info">Everyone can commit their own entries</div>
                                         </label>
                                     </div>
                                 </div>
@@ -2141,10 +2306,14 @@
                                         <span class="badge ${currentUser.role === 'admin' ? 'bg-primary' : 'bg-secondary'}">${currentUser.role}</span>
                                     </p>
                                     <p class="mb-1"><strong>Outlet:</strong> VM:Switch VillageMall</p>
-                                    <p class="mb-0"><strong>Can Commit:</strong> 
+                                    <p class="mb-0"><strong>Can Commit Others' Entries:</strong> 
                                         <span class="badge ${currentUser.canCommit ? 'bg-success' : 'bg-danger'}">
                                             ${currentUser.canCommit ? 'Yes' : 'No'}
                                         </span>
+                                        <div class="permission-info d-inline-block ms-2">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            You can always commit your own entries
+                                        </div>
                                     </p>
                                 </div>
                             </div>
@@ -2316,8 +2485,10 @@
                                 <p><strong>Remarks:</strong></p>
                                 <div class="remarks-list">
                                     ${entryRemarks[entry.id].map(remark => `
-                                        <div class="remark-item">
-                                            <div class="remark-author">${remark.author}</div>
+                                        <div class="remark-item ${remark.isSystem ? 'system-remark' : ''}">
+                                            <div class="remark-author">
+                                                ${remark.isSystem ? '<i class="fas fa-info-circle me-1"></i>' : ''}${remark.author}
+                                            </div>
                                             <div>${remark.text}</div>
                                             <div class="remark-time">${formatMalaysiaDateTime(remark.timestamp)}</div>
                                         </div>
